@@ -56,6 +56,36 @@ st.markdown("""
         box-shadow: 0 8px 30px rgba(0,0,0,0.2);
     }
 
+    .metric-flex {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .metric-left {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        border-right: 1px solid rgba(255, 255, 255, 0.2);
+        padding-right: 20px;
+    }
+
+    .metric-left .icon {
+        font-size: 1.5rem;
+    }
+
+    .metric-left .title {
+        font-size: 1rem;
+        font-weight: 600;
+    }
+
+    .metric-value {
+        font-size: 1.8rem;
+        font-weight: bold;
+        padding-left: 20px;
+        color: #1E90FF;
+    }
+
     .status-pending { border-left: 4px solid #fbbf24; }
     .status-in-progress { border-left: 4px solid #3b82f6; }
     .status-resolved { border-left: 4px solid #10b981; }
@@ -371,45 +401,56 @@ def render_dashboard():
     analytics = get_analytics(7)  # Last 7 days
     
     col1, col2, col3, col4 = st.columns(4)
-    
+
     with col1:
         st.markdown(f"""
         <div class="metric-card">
-            <h3>Total Tickets</h3>
-            <h2 style="color: #667eea;">{analytics.get('total_tickets', 0)}</h2>
-            <p>Last 7 days</p>
+            <div class="metric-flex">
+                <div class="metric-left">
+                    <span class="icon">🎫</span>
+                    <span class="title">Total Tickets</span>
+                </div>
+                <div class="metric-value">{analytics.get('total_tickets', 0)}</div>
+            </div>
         </div>
         """, unsafe_allow_html=True)
-    
+
     with col2:
-        ai_resolved = analytics.get('resolved_by_ai', 0)
-        total = analytics.get('total_tickets', 1)
-        percentage = (ai_resolved / total * 100) if total > 0 else 0
         st.markdown(f"""
         <div class="metric-card">
-            <h3>AI Resolved</h3>
-            <h2 style="color: #10b981;">{ai_resolved}</h2>
-            <p>{percentage:.1f}% of total</p>
+            <div class="metric-flex">
+                <div class="metric-left">
+                    <span class="icon">🤖</span>
+                    <span class="title">AI Resolved</span>
+                </div>
+                <div class="metric-value">{analytics.get('resolved_by_ai', 0)}</div>
+            </div>
         </div>
         """, unsafe_allow_html=True)
-    
+
     with col3:
-        escalated = analytics.get('escalated_to_human', 0)
         st.markdown(f"""
         <div class="metric-card">
-            <h3>Escalated</h3>
-            <h2 style="color: #ef4444;">{escalated}</h2>
-            <p>Requiring human intervention</p>
+            <div class="metric-flex">
+                <div class="metric-left">
+                    <span class="icon">⚠️</span>
+                    <span class="title">Escalated</span>
+                </div>
+                <div class="metric-value">{analytics.get('escalated_to_human', 0)}</div>
+            </div>
         </div>
         """, unsafe_allow_html=True)
-    
+
     with col4:
-        avg_time = analytics.get('avg_resolution_time', 0)
         st.markdown(f"""
         <div class="metric-card">
-            <h3>Avg Resolution</h3>
-            <h2 style="color: #f59e0b;">{avg_time:.1f}h</h2>
-            <p>Average time to resolve</p>
+            <div class="metric-flex">
+                <div class="metric-left">
+                    <span class="icon">⏱️</span>
+                    <span class="title">Avg Resolution</span>
+                </div>
+                <div class="metric-value">{analytics.get('avg_resolution_time', 0):.1f}h</div>
+            </div>
         </div>
         """, unsafe_allow_html=True)
     
@@ -738,14 +779,15 @@ def render_analytics():
     
     for i, (title, value, icon) in enumerate(metrics):
         with [col1, col2, col3, col4][i]:
+
             st.markdown(f"""
             <div class="metric-card">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <span style="font-size: 2rem;">{icon}</span>
-                    <div>
-                        <h3 style="margin: 0; color: #6b7280;">{title}</h3>
-                        <h2 style="margin: 0; color: #667eea;">{value}</h2>
+                <div class="metric-flex">
+                    <div class="metric-left">
+                        <span class="icon" style="font-size: 2rem">{icon}</span>
+                        <span class="title" style="font-size: 1.5rem">{title}</span>
                     </div>
+                    <div class="metric-value">{value}</div>
                 </div>
             </div>
             """, unsafe_allow_html=True)
@@ -755,7 +797,7 @@ def render_analytics():
     col1, col2 = st.columns(2)
     
     with col1:
-        st.markdown('<div class="analytics-container">', unsafe_allow_html=True)
+        
         st.markdown("#### 📂 Category Distribution")
         if "category_distribution" in analytics:
             cat_data = analytics["category_distribution"]
@@ -772,10 +814,8 @@ def render_analytics():
                 height=400
             )
             st.plotly_chart(fig, use_container_width=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-    
+        
     with col2:
-        st.markdown('<div class="analytics-container">', unsafe_allow_html=True)
         st.markdown("#### 😊 Sentiment Analysis")
         if "sentiment_distribution" in analytics:
             sent_data = analytics["sentiment_distribution"]
@@ -791,12 +831,10 @@ def render_analytics():
             )
             fig.update_layout(height=400)
             st.plotly_chart(fig, use_container_width=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-    
+        
     # Daily trend
-    st.markdown('<div class="analytics-container">', unsafe_allow_html=True)
-    st.markdown("#### 📈 Daily Ticket Trend")
     if "daily_tickets" in analytics:
+        st.markdown("#### 📈 Daily Ticket Trend")
         daily_data = analytics["daily_tickets"]
         df = pd.DataFrame(daily_data)
         fig = px.line(
@@ -812,13 +850,11 @@ def render_analytics():
             height=400
         )
         st.plotly_chart(fig, use_container_width=True)
-    st.markdown('</div>', unsafe_allow_html=True)
     
     # Performance metrics
     col1, col2 = st.columns(2)
     
     with col1:
-        st.markdown('<div class="analytics-container">', unsafe_allow_html=True)
         st.markdown("#### 🎯 Resolution Performance")
         
         total_tickets = analytics.get('total_tickets', 1)
@@ -844,10 +880,8 @@ def render_analytics():
             height=400
         )
         st.plotly_chart(fig, use_container_width=True)
-        st.markdown('</div>', unsafe_allow_html=True)
     
     with col2:
-        st.markdown('<div class="analytics-container">', unsafe_allow_html=True)
         st.markdown("#### ⏱️ Resolution Time Analysis")
         
         # Mock resolution time data
@@ -865,8 +899,7 @@ def render_analytics():
         )
         fig.update_layout(height=400)
         st.plotly_chart(fig, use_container_width=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-
+    
 def render_knowledge_base():
     """Render knowledge base management"""
     st.header("📚 Knowledge Base Management")
