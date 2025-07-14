@@ -78,13 +78,17 @@ class NoteType(str, Enum):
     INTERNAL = "internal"
     CUSTOMER_FACING = "customer_facing"
 
+class Geolocation(BaseModel):
+    latitude: float = Field(..., ge=-90, le=90)
+    longitude: float = Field(..., ge=-180, le=180)
+
 # Pydantic models
 class TicketCreate(BaseModel):
     title: str
     description: str
     customer_email: str
     customer_name: str
-
+    location: Optional[Geolocation] = None
 
 
 class TicketResponse(BaseModel):
@@ -107,7 +111,13 @@ class TicketResponse(BaseModel):
     assigned_agent: Optional[str] = None
     resolution_feedback: Optional[int] = Field(None, ge=1, le=5)  # New field
     notes: List[Dict] = Field(default_factory=list)  # New field
+    location: Optional[Geolocation] = None
 
+class GeoAnalyticsResponse(BaseModel):
+    hotspot_coordinates: List[Dict[str, float]]
+    region_distribution: Dict[str, int]
+    distance_to_facility: Dict[str, float]
+    regional_issue_types: Dict[str, Dict[str, int]]
 
 class KnowledgeEntry(BaseModel):
     title: str
@@ -196,7 +206,15 @@ async def startup_db():
     await loop.run_in_executor(executor, db.tickets.create_index, "status")
     await loop.run_in_executor(executor, db.tickets.create_index, "category")
     await loop.run_in_executor(executor, db.tickets.create_index, "priority")
-    logger.info("Database initialized")
+    
+    # Create geospatial index
+    await loop.run_in_executor(
+        executor, 
+        db.tickets.create_index, 
+        [("location", "2dsphere")]
+    )
+    
+    logger.info("Database initialized with geospatial index")
 
 async def startup_qdrant():
     global qdrant_client
@@ -562,7 +580,14 @@ async def process_ticket(ticket_data: TicketCreate, db) -> TicketResponse:
         "confidence_score": confidence_score,
         "assigned_agent": None,
         "resolution_feedback": None,  # New field
-        "notes": []  # New field for storing notes
+        "notes": [],  # New field for storing notes
+        "location": {
+            "type": "Point",
+            "coordinates": [
+                ticket_data.location.longitude if ticket_data.location else None,
+                ticket_data.location.latitude if ticket_data.location else None
+            ]
+        } if ticket_data.location else None
     }
     
     # Save to database
@@ -1015,6 +1040,121 @@ async def get_analytics(
         )
     except Exception as e:
         logger.error(f"Error getting analytics: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.get("/analytics/geographical", response_model=GeoAnalyticsResponse)
+async def get_geographical_analytics(
+    days: int = 30,
+    db = Depends(get_db)
+):
+    """Get geographical analytics insights"""
+    try:
+        start_date = datetime.utcnow() - timedelta(days=days)
+        
+        def get_geo_analytics():
+            # 1. Identify hotspots (clusters of high-priority tickets)
+            hotspot_pipeline = [
+                {"$match": {
+                    "created_at": {"$gte": start_date},
+                    "priority": {"$in": ["high", "urgent"]},
+                    "location": {"$exists": True}
+                }},
+                {"$group": {
+                    "_id": None,
+                    "hotspots": {
+                        "$push": {
+                            "type": "Point",
+                            "coordinates": "$location.coordinates"
+                        }
+                    }
+                }}
+            ]
+            
+            # 2. Regional distribution
+            # For simplicity, we'll use fixed regions - in a real system you'd use geospatial boundaries
+            regions = {
+                "north": {"lat": [40, 90], "lng": [-180, 180]},
+                "south": {"lat": [-90, 40], "lng": [-180, 180]},
+                "east": {"lat": [-90, 90], "lng": [0, 180]},
+                "west": {"lat": [-90, 90], "lng": [-180, 0]}
+            }
+            
+            region_counts = {region: 0 for region in regions}
+            regional_issue_types = {region: {} for region in regions}
+            
+            # 3. Distance to nearest service facility
+            # Mock facility locations - in real system this would be in a DB collection
+            facilities = {
+                "HQ": {"coordinates": [-118.243683, 34.052235]},  # LA
+                "East": {"coordinates": [-74.005974, 40.712776]},  # NY
+                "West": {"coordinates": [-122.419416, 37.774929]}  # SF
+            }
+            
+            distance_stats = {facility: [] for facility in facilities}
+            
+            # Get all tickets with location
+            tickets = db.tickets.find({
+                "created_at": {"$gte": start_date},
+                "location": {"$exists": True}
+            })
+            
+            for ticket in tickets:
+                # Calculate region
+                lon, lat = ticket["location"]["coordinates"]
+                
+                for region, bounds in regions.items():
+                    if (bounds["lat"][0] <= lat <= bounds["lat"][1] and 
+                        bounds["lng"][0] <= lon <= bounds["lng"][1]):
+                        region_counts[region] += 1
+                        
+                        # Count issue types per region
+                        category = ticket.get("category", "unknown")
+                        regional_issue_types[region][category] = regional_issue_types[region].get(category, 0) + 1
+                        break
+                
+                # Calculate distance to facilities
+                for facility, loc in facilities.items():
+                    # Simplified distance calculation (Haversine would be better)
+                    fac_lon, fac_lat = loc["coordinates"]
+                    distance = ((lon - fac_lon)**2 + (lat - fac_lat)**2)**0.5
+                    distance_stats[facility].append(distance)
+            
+            # Calculate average distances
+            avg_distances = {
+                facility: sum(distances)/len(distances) if distances else 0
+                for facility, distances in distance_stats.items()
+            }
+            
+            # Get hotspot coordinates (limit to 100 for demonstration)
+            hotspot_coords = []
+            hotspot_tickets = db.tickets.find({
+                "created_at": {"$gte": start_date},
+                "priority": {"$in": ["high", "urgent"]},
+                "location": {"$exists": True}
+            }).limit(100)
+            
+            for ticket in hotspot_tickets:
+                lon, lat = ticket["location"]["coordinates"]
+                hotspot_coords.append({
+                    "latitude": lat,
+                    "longitude": lon,
+                    "priority": ticket.get("priority"),
+                    "category": ticket.get("category")
+                })
+            
+            return {
+                "hotspot_coordinates": hotspot_coords,
+                "region_distribution": region_counts,
+                "distance_to_facility": avg_distances,
+                "regional_issue_types": regional_issue_types
+            }
+        
+        loop = asyncio.get_event_loop()
+        geo_data = await loop.run_in_executor(executor, get_geo_analytics)
+        
+        return GeoAnalyticsResponse(**geo_data)
+    except Exception as e:
+        logger.error(f"Error getting geographical analytics: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.get("/health")
