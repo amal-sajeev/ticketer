@@ -4,7 +4,7 @@
 import os
 import uuid
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Dict, Any
 from enum import Enum
 from dataclasses import dataclass
@@ -12,7 +12,7 @@ from dataclasses import dataclass
 import uvicorn
 from fastapi import FastAPI, HTTPException, BackgroundTasks, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, model_validator
 from pymongo import MongoClient
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
@@ -33,7 +33,7 @@ MONGODB_URL = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
 QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
 QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")  # Required for cloud Qdrant
 OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "gemma3:latest")
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
 
 # Enums
@@ -79,8 +79,33 @@ class NoteType(str, Enum):
     CUSTOMER_FACING = "customer_facing"
 
 class Geolocation(BaseModel):
-    latitude: float = Field(..., ge=-90, le=90)
-    longitude: float = Field(..., ge=-180, le=180)
+    latitude: Optional[float] = Field(None, ge=-90, le=90)
+    longitude: Optional[float] = Field(None, ge=-180, le=180)
+    type: Optional[str] = None
+    coordinates: Optional[List[float]] = None
+
+    @field_validator('coordinates')
+    @classmethod
+    def validate_coordinates(cls, v):
+        if v is not None and len(v) != 2:
+            raise ValueError("Coordinates must be [longitude, latitude]")
+        return v
+
+    @model_validator(mode='before')
+    @classmethod
+    def check_location_format(cls, values):
+        if isinstance(values, dict):
+            if values.get('coordinates') is not None:
+                # If we have coordinates, ensure they're valid
+                if len(values['coordinates']) != 2:
+                    raise ValueError("Coordinates must be [longitude, latitude]")
+                values['longitude'] = values['coordinates'][0]
+                values['latitude'] = values['coordinates'][1]
+            elif values.get('latitude') is not None and values.get('longitude') is not None:
+                # If we have separate lat/long, create coordinates
+                values['coordinates'] = [values['longitude'], values['latitude']]
+                values['type'] = 'Point'
+        return values
 
 # Pydantic models
 class TicketCreate(BaseModel):
@@ -374,13 +399,30 @@ class KnowledgeSearcher:
     @staticmethod
     async def search_documentation(query: str, limit: int = 5) -> List[Dict]:
         try:
-            query_vector = embedding_model.encode(query).tolist()
+            # Ensure embedding_model is available
+            if not embedding_model:
+                logger.error("Embedding model not initialized")
+                return []
+            
+            # Run encoding in thread pool since it's CPU-intensive
+            loop = asyncio.get_event_loop()
+            query_vector = await loop.run_in_executor(
+                executor, 
+                embedding_model.encode, 
+                query
+            )
+            query_vector = query_vector.tolist()
+            
+            # Ensure qdrant_client is available
+            if not qdrant_client:
+                logger.error("Qdrant client not initialized")
+                return []
             
             results = qdrant_client.search(
                 collection_name="documentation",
                 query_vector=query_vector,
                 limit=limit,
-                score_threshold=0.7,
+                score_threshold=0.4,
                 with_payload=True,
                 with_vectors=False
             )
@@ -394,18 +436,36 @@ class KnowledgeSearcher:
             
         except Exception as e:
             logger.error(f"Documentation search error: {e}")
+            # Return empty list but log the specific error for debugging
             return []
     
     @staticmethod
     async def search_service_memory(query: str, limit: int = 5) -> List[Dict]:
         try:
-            query_vector = embedding_model.encode(query).tolist()
+            # Ensure embedding_model is available
+            if not embedding_model:
+                logger.error("Embedding model not initialized")
+                return []
+            
+            # Run encoding in thread pool since it's CPU-intensive
+            loop = asyncio.get_event_loop()
+            query_vector = await loop.run_in_executor(
+                executor, 
+                embedding_model.encode, 
+                query
+            )
+            query_vector = query_vector.tolist()
+            
+            # Ensure qdrant_client is available
+            if not qdrant_client:
+                logger.error("Qdrant client not initialized")
+                return []
             
             results = qdrant_client.search(
                 collection_name="service_memory",
                 query_vector=query_vector,
                 limit=limit,
-                score_threshold=0.75,
+                score_threshold=0.45,
                 with_payload=True,
                 with_vectors=False
             )
@@ -420,7 +480,117 @@ class KnowledgeSearcher:
             
         except Exception as e:
             logger.error(f"Service memory search error: {e}")
+            # Return empty list but log the specific error for debugging
             return []
+
+class ResolutionGenerator:
+    @staticmethod
+    async def generate_resolution(ticket_title: str, ticket_description: str, customer_name:str, sentiment:str, context_sources: List[Dict]) -> tuple[str, float]:
+        """
+        Generate a contextual resolution using retrieved knowledge as context
+        """
+        # Prepare context from retrieved sources
+        context_text = ""
+        if context_sources:
+            context_text = "\n\nRelevant knowledge:\n"
+            for i, source in enumerate(context_sources[:3]):  # Use top 3 sources
+                if source.get("resolution"):  # Service memory
+                    context_text += f"- Previous resolution: {source['resolution']}\n"
+                elif source.get("content"):  # Documentation
+                    context_text += f"- Documentation: {source['content']}\n"
+        
+        prompt = f"""
+            You are Maya, a warm and empathetic customer service representative. Your role is to respond to customer service tickets with compassion, professionalism, and a genuinely helpful attitude.
+            Your Personality
+
+            Warm and approachable: Use a friendly, welcoming tone that makes customers feel valued and heard
+            Empathetic: Acknowledge customer frustrations and show genuine understanding of their situation
+            Optimistic: Maintain a positive, can-do attitude even when dealing with complaints or difficult situations
+            Professional yet personable: Strike a balance between being helpful and maintaining appropriate boundaries
+            Solution-focused: Always aim to provide clear, actionable solutions or next steps
+
+            Communication Style
+
+            Use natural, conversational language that feels authentic and caring
+            Express genuine concern for the customer's experience
+            Acknowledge their feelings before moving to solutions
+            Use phrases like "I completely understand how frustrating that must be" or "I'm so sorry you've had this experience"
+            Be encouraging and reassuring when appropriate
+            End responses on a positive, forward-looking note
+
+            Response Guidelines
+
+            Do NOT ask for additional information - work with what's provided in the ticket
+            Provide complete, self-contained responses that address the customer's concern
+            If you need to escalate or transfer the issue, explain this clearly with next steps
+            Include relevant policy information or procedures when helpful
+            Offer alternatives or workarounds when the primary solution isn't available
+            Thank customers for their patience and for bringing issues to your attention
+
+            Tone Examples
+
+            Instead of: "Your request has been processed"
+            Say: "I'm happy to let you know that I've taken care of this for you!"
+            Instead of: "This is not possible"
+            Say: "I understand why you'd want this option, and while I can't do that specific thing, here's what I can do to help..."
+
+            Remember
+
+            Every customer interaction is an opportunity to create a positive experience
+            Show appreciation for their business and patience
+            Be specific about what you've done to help them
+            Maintain professionalism while being genuinely caring and helpful
+
+            Your goal is to leave every customer feeling heard, valued, and satisfied with both the resolution and the service experience. Do not ask any questions about what response to generate order what to do next, the customer should never doubt that you are a human. A customer has submitted a ticket with the following details:
+        
+            Title: "{ticket_title}"
+            Description: "{ticket_description}"
+            {context_text}
+            Customer Name: {customer_name}
+            Customer current sentiment: {sentiment}
+            
+            Based on the customer's issue and the relevant knowledge provided above, generate a helpful, personalized resolution. The resolution should:
+            1. Directly address the customer's specific problem
+            2. Be clear and actionable
+            3. Use information from the knowledge base when relevant
+            4. Be written in a friendly, professional tone
+            5. Be concise but complete
+            6. All instructions given to the customer should be clear and practical
+            
+            If the knowledge base doesn't contain sufficient information to resolve the issue, politely indicate that the ticket needs human review.
+            
+            Resolution:
+        """
+        
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    f"{OLLAMA_URL}/api/generate",
+                    json={"model": OLLAMA_MODEL, "prompt": prompt, "stream": False}
+                )
+                result = response.json()
+                resolution = result["response"].strip()
+                
+                # Calculate confidence based on context availability and response quality
+                confidence = 0.3  # Base confidence
+                
+                if context_sources:
+                    # Higher confidence if we have relevant context
+                    best_score = max([s.get("score", 0) for s in context_sources])
+                    confidence += best_score * 0.4
+                
+                # Additional confidence based on resolution length and structure
+                if len(resolution) > 50 and "sorry" not in resolution.lower():
+                    confidence += 0.2
+                
+                confidence = min(confidence, 0.95)  # Cap at 95%
+                
+                return resolution, confidence
+                
+        except Exception as e:
+            logger.error(f"Resolution generation error: {e}")
+            return "I apologize, but I'm unable to generate a resolution at this time. This ticket will be escalated to a human agent.", 0.0
+
 
 class ResolutionEvaluator:
     @staticmethod
@@ -469,6 +639,7 @@ class ResolutionEvaluator:
                         except ValueError:
                             confidence = 0.5
                 
+                logger.info(evaluation)
                 return decision, confidence
                 
         except Exception as e:
@@ -502,6 +673,18 @@ async def add_to_service_memory(ticket: dict, resolution: str, agent: str, qdran
     except Exception as e:
         logger.error(f"Error adding to service memory: {e}")
 
+def convert_db_ticket(ticket: dict) -> dict:
+    """Convert database ticket format to API response format"""
+    if ticket.get('location'):
+        # Convert GeoJSON Point to our model format
+        ticket['location'] = {
+            'type': ticket['location']['type'],
+            'coordinates': ticket['location']['coordinates'],
+            'longitude': ticket['location']['coordinates'][0],
+            'latitude': ticket['location']['coordinates'][1]
+        }
+    return ticket
+
 # Core ticket processing
 async def process_ticket(ticket_data: TicketCreate, db) -> TicketResponse:
     # Step 1: Analyze sentiment
@@ -527,37 +710,36 @@ async def process_ticket(ticket_data: TicketCreate, db) -> TicketResponse:
     # Search service memory
     memory_results = await KnowledgeSearcher.search_service_memory(search_query)
     
-    # Step 4: Evaluate potential resolutions
+    logger.info(f"Searching for query: {search_query}")
+    logger.info(f"Doc results count: {len(doc_results)}")
+    logger.info(f"Memory results count: {len(memory_results)}")
+
+    # Step 4: Generate AI resolution using retrieved context
     ai_resolution = None
     confidence_score = 0.0
     status = TicketStatus.PENDING
     
-    # Try service memory first (previous successful resolutions)
-    if memory_results:
-        best_memory = memory_results[0]
-        is_good, confidence = await ResolutionEvaluator.evaluate_resolution(
-            ticket_data.description, best_memory["resolution"]
+    # Combine all context sources
+    all_context = memory_results + doc_results
+    
+    if all_context:
+        # Generate resolution using context
+        ai_resolution, confidence_score = await ResolutionGenerator.generate_resolution(
+            ticket_data.title, 
+            ticket_data.description,
+            ticket_data.customer_name,
+            sentiment,
+            all_context
         )
         
-        if is_good and confidence > 0.7:
-            ai_resolution = best_memory["resolution"]
-            confidence_score = confidence
+        # Only auto-resolve if confidence is high enough
+        if confidence_score > 0.6:
             status = TicketStatus.RESOLVED
-    
-    # If no good memory result, try documentation
-    if not ai_resolution and doc_results:
-        best_doc = doc_results[0]
-        is_good, confidence = await ResolutionEvaluator.evaluate_resolution(
-            ticket_data.description, best_doc["content"]
-        )
-        
-        if is_good and confidence > 0.6:
-            ai_resolution = best_doc["content"]
-            confidence_score = confidence
-            status = TicketStatus.RESOLVED
-    
-    # If no AI resolution found, escalate to human
-    if not ai_resolution:
+        else:
+            # Low confidence - escalate to human but keep AI suggestion
+            status = TicketStatus.ESCALATED
+    else:
+        # No context found - escalate to human
         status = TicketStatus.ESCALATED
     
     # Create ticket document
@@ -572,8 +754,8 @@ async def process_ticket(ticket_data: TicketCreate, db) -> TicketResponse:
         "agent_category": agent_category.value,
         "status": status.value,
         "sentiment": sentiment.value,
-        "created_at": datetime.utcnow(),
-        "updated_at": datetime.utcnow(),
+        "created_at": datetime.now(timezone.utc),
+        "updated_at": datetime.now(timezone.utc),
         "ai_resolution": ai_resolution,
         "manual_resolution": None,  # New field
         "resolution_type": ResolutionType.AI.value if ai_resolution else None,  # New field
@@ -584,10 +766,10 @@ async def process_ticket(ticket_data: TicketCreate, db) -> TicketResponse:
         "location": {
             "type": "Point",
             "coordinates": [
-                ticket_data.location.longitude if ticket_data.location else None,
-                ticket_data.location.latitude if ticket_data.location else None
+                ticket_data.location.longitude,
+                ticket_data.location.latitude
             ]
-        } if ticket_data.location else None
+        } if ticket_data.location else None,
     }
     
     # Save to database
@@ -636,7 +818,7 @@ async def get_tickets(
         
         def get_tickets_sync():
             cursor = db.tickets.find(filter_query).sort("created_at", -1).skip(skip).limit(limit)
-            return list(cursor)
+            return [convert_db_ticket(t) for t in cursor]
         
         loop = asyncio.get_event_loop()
         tickets = await loop.run_in_executor(executor, get_tickets_sync)
@@ -656,6 +838,7 @@ async def get_ticket(ticket_id: str, db = Depends(get_db)):
         if not ticket:
             raise HTTPException(status_code=404, detail="Ticket not found")
         
+        ticket = convert_db_ticket(ticket)
         return TicketResponse(**ticket, id=ticket["_id"])
     except HTTPException:
         raise
@@ -929,7 +1112,6 @@ async def add_service_memory(
     except Exception as e:
         logger.error(f"Error adding service memory: {e}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
-
 
 
 @app.get("/analytics", response_model=AnalyticsResponse)

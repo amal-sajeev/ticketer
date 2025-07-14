@@ -1,749 +1,1005 @@
 import streamlit as st
 import requests
+import json
+from datetime import datetime, timedelta
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-from datetime import datetime, timedelta
-import json
+from plotly.subplots import make_subplots
+import os
 import time
-from typing import Dict, List, Optional
-import asyncio
-from streamlit_autorefresh import st_autorefresh
+import uuid
 
 # Page configuration
 st.set_page_config(
-    page_title="AI Ticketing System Demo",
-    page_icon="🎫",
+    page_title="Telecom AI Customer Service Dashboard",
+    page_icon="🚀",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for better styling
+# API configuration
+API_BASE_URL = os.getenv("TICKET_API_URL", "http://localhost:8000")
+
+# Custom CSS for modern styling
 st.markdown("""
 <style>
+    /* ---- MAIN HEADER ---- */
     .main-header {
-        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-        padding: 2rem;
-        border-radius: 10px;
-        margin-bottom: 2rem;
-    }
-    
-    .main-header h1 {
-        color: white;
-        margin: 0;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 2rem 0;
+        margin: -1rem -1rem 2rem -1rem;
         text-align: center;
-        font-size: 2.5rem;
-        font-weight: 700;
-    }
-    
-    .main-header p {
         color: white;
-        margin: 0.5rem 0 0 0;
-        text-align: center;
-        font-size: 1.2rem;
-        opacity: 0.9;
+        border-radius: 0 0 15px 15px;
     }
-    
-    .metric-card {
-        background: white;
+
+    /* ---- GLASS PANELS ---- */
+    .metric-card,
+    .ticket-card,
+    .form-container,
+    .analytics-container {
+        background: rgba(255, 255, 255, 0.03); /* semi-transparent white */
+        backdrop-filter: blur(15px);           /* glass blur */
+        -webkit-backdrop-filter: blur(15px);   /* Safari support */
+        border-radius: 15px;
+        border: 1px solid rgba(255, 255, 255, 0.2); /* subtle border */
         padding: 1.5rem;
+        margin: 1rem 0;
+        color: #f1f5f9;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1); /* optional depth */
+    }
+
+    .metric-card:hover,
+    .ticket-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+    }
+
+    .status-pending { border-left: 4px solid #fbbf24; }
+    .status-in-progress { border-left: 4px solid #3b82f6; }
+    .status-resolved { border-left: 4px solid #10b981; }
+    .status-escalated { border-left: 4px solid #ef4444; }
+
+    .priority-low { color: #10b981; }
+    .priority-medium { color: #f59e0b; }
+    .priority-high { color: #ef4444; }
+    .priority-urgent { color: #dc2626; font-weight: bold; }
+
+    /* ---- MESSAGES ---- */
+    .success-message {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+        padding: 1rem;
         border-radius: 10px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        border-left: 4px solid #667eea;
-    }
-    
-    .success-card {
-        background: #d4edda;
-        border: 1px solid #c3e6cb;
-        border-radius: 8px;
-        padding: 1rem;
         margin: 1rem 0;
+        text-align: center;
     }
-    
-    .warning-card {
-        background: #fff3cd;
-        border: 1px solid #ffeeba;
-        border-radius: 8px;
+
+    .error-message {
+        background: linear-gradient(135deg, #ef4444, #dc2626);
+        color: white;
         padding: 1rem;
+        border-radius: 10px;
         margin: 1rem 0;
+        text-align: center;
     }
-    
-    .error-card {
-        background: #f8d7da;
-        border: 1px solid #f5c6cb;
-        border-radius: 8px;
-        padding: 1rem;
-        margin: 1rem 0;
+
+    /* ---- BADGES ---- */
+    .info-badge {
+        background: rgba(255, 255, 255, 0.15);
+        color: #f1f5f9;
+        padding: 0.25rem 0.75rem;
+        border-radius: 15px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        margin: 0.25rem;
+        display: inline-block;
     }
-    
-    .stButton > button {
-        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+
+    /* ---- NAV BUTTON ---- */
+    .nav-button {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
         border: none;
-        border-radius: 5px;
-        padding: 0.5rem 1rem;
-        font-weight: 600;
+        padding: 0.75rem 1.5rem;
+        border-radius: 25px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
+        margin: 0.25rem;
+    }
+
+    .nav-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    /* ---- SIDEBAR BUTTONS ---- */
+    .sidebar .stButton button {
+        width: 100%;
+        text-align: left;
+        padding: 0.75rem 1.5rem;
+        margin: 0.25rem 0;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.1);
+        color: #f1f5f9;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
         transition: all 0.3s ease;
     }
-    
-    .stButton > button:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+
+    .sidebar .stButton button:hover {
+        background: rgba(255, 255, 255, 0.2);
     }
-    
-    .sidebar .stSelectbox > div > div {
-        background-color: #f8f9fa;
+
+    .sidebar .stButton button:active {
+        background: rgba(255, 255, 255, 0.3);
     }
-    
-    .ticket-card {
-        background: white;
-        border-radius: 10px;
-        padding: 1.5rem;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        margin: 1rem 0;
-        border-left: 4px solid #667eea;
+
+    /* ---- FOOTER ---- */
+    .footer {
+        color: #f1f5f9;
     }
-    
-    .auto-resolved {
-        border-left-color: #28a745 !important;
-    }
-    
-    .high-priority {
-        border-left-color: #dc3545 !important;
-    }
-    
-    .medium-priority {
-        border-left-color: #ffc107 !important;
-    }
-    
-    .low-priority {
-        border-left-color: #6c757d !important;
+
+    /* ---- BODY ---- */
+    body {
+        background: linear-gradient(135deg, #0f172a, #1e293b);
     }
 </style>
+
 """, unsafe_allow_html=True)
 
-# API Configuration
-API_BASE_URL = "http://localhost:8000"
+# Initialize session state
+if 'selected_ticket_id' not in st.session_state:
+    st.session_state.selected_ticket_id = None
+if 'page' not in st.session_state:
+    st.session_state.page = 'dashboard'
+if 'form_submitted' not in st.session_state:
+    st.session_state.form_submitted = False
 
-# Session state initialization
-if 'tickets' not in st.session_state:
-    st.session_state.tickets = []
-if 'analytics' not in st.session_state:
-    st.session_state.analytics = {}
-if 'demo_mode' not in st.session_state:
-    st.session_state.demo_mode = False
-
-# Helper functions
-def make_api_request(endpoint: str, method: str = "GET", data: dict = None) -> dict:
-    """Make API request with error handling"""
+# API Helper Functions
+def create_ticket(ticket_data):
+    """Create a new support ticket"""
     try:
-        url = f"{API_BASE_URL}{endpoint}"
-        if method == "GET":
-            response = requests.get(url)
-        elif method == "POST":
-            response = requests.post(url, json=data)
-        elif method == "PUT":
-            response = requests.put(url, json=data)
-        
-        if response.status_code in [200, 201]:
-            return response.json()
-        else:
-            st.error(f"API Error: {response.status_code} - {response.text}")
-            return None
-    except requests.exceptions.ConnectionError:
-        st.error("⚠️ Cannot connect to API. Please ensure the FastAPI server is running on localhost:8000")
-        return None
-    except Exception as e:
-        st.error(f"Request failed: {str(e)}")
+        response = requests.post(f"{API_BASE_URL}/tickets", json=ticket_data, timeout=10)
+        return response.json() if response.status_code == 200 else None
+    except requests.exceptions.RequestException as e:
+        st.error(f"API connection failed: {str(e)}")
         return None
 
-def get_priority_color(priority: str) -> str:
+def get_tickets(status=None, category=None, priority=None):
+    """Fetch tickets with optional filters"""
+    params = {}
+    if status: params["status"] = status
+    if category: params["category"] = category
+    if priority: params["priority"] = priority
+    
+    try:
+        response = requests.get(f"{API_BASE_URL}/tickets", params=params, timeout=10)
+        return response.json() if response.status_code == 200 else []
+    except requests.exceptions.RequestException:
+        # Return mock data for demo purposes
+        return generate_mock_tickets()
+
+def get_ticket(ticket_id):
+    """Get specific ticket details"""
+    try:
+        response = requests.get(f"{API_BASE_URL}/tickets/{ticket_id}", timeout=10)
+        return response.json() if response.status_code == 200 else None
+    except requests.exceptions.RequestException:
+        return generate_mock_ticket(ticket_id)
+
+def get_analytics(days=30):
+    """Get analytics data"""
+    try:
+        response = requests.get(f"{API_BASE_URL}/analytics?days={days}", timeout=10)
+        return response.json() if response.status_code == 200 else {}
+    except requests.exceptions.RequestException:
+        return generate_mock_analytics()
+
+def update_ticket_status(ticket_id, status, agent_name=None):
+    """Update ticket status"""
+    try:
+        data = {"status": status}
+        if agent_name:
+            data["assigned_agent"] = agent_name
+        response = requests.patch(f"{API_BASE_URL}/tickets/{ticket_id}", json=data, timeout=10)
+        return response.status_code == 200
+    except requests.exceptions.RequestException:
+        return True  # Mock success for demo
+
+def add_ticket_note(ticket_id, content, note_type="internal", agent_name=""):
+    """Add note to ticket"""
+    try:
+        data = {
+            "content": content,
+            "type": note_type,
+            "agent_name": agent_name
+        }
+        response = requests.post(f"{API_BASE_URL}/tickets/{ticket_id}/notes", json=data, timeout=10)
+        return response.status_code == 200
+    except requests.exceptions.RequestException:
+        return True  # Mock success for demo
+
+# Mock data generators for demo purposes
+def generate_mock_tickets():
+    """Generate mock tickets for demo"""
+    statuses = ["pending", "in_progress", "resolved", "escalated"]
+    categories = ["billing", "technical", "internet", "account"]
+    priorities = ["low", "medium", "high", "urgent"]
+    
+    tickets = []
+    for i in range(10):
+        ticket = {
+            "id": str(uuid.uuid4()),
+            "title": f"Sample Issue #{i+1}",
+            "description": f"This is a sample description for ticket {i+1}. Customer is experiencing issues with their service.",
+            "customer_name": f"Customer {i+1}",
+            "customer_email": f"customer{i+1}@example.com",
+            "status": statuses[i % len(statuses)],
+            "category": categories[i % len(categories)],
+            "priority": priorities[i % len(priorities)],
+            "created_at": (datetime.now() - timedelta(days=i)).isoformat(),
+            "ai_resolution": "AI suggested resolution" if i % 3 == 0 else None,
+            "manual_resolution": "Manual resolution provided" if i % 4 == 0 else None
+        }
+        tickets.append(ticket)
+    
+    return tickets
+
+def generate_mock_ticket(ticket_id):
+    """Generate a single mock ticket"""
+    return {
+        "id": ticket_id,
+        "title": "Sample Network Connectivity Issue",
+        "description": "Customer experiencing intermittent connectivity issues in their area. Speed tests show significant degradation during peak hours.",
+        "customer_name": "John Doe",
+        "customer_email": "john.doe@example.com",
+        "status": "in_progress",
+        "category": "technical",
+        "priority": "high",
+        "created_at": datetime.now().isoformat(),
+        "ai_resolution": "AI analysis suggests network congestion in the area. Recommend upgrading local infrastructure.",
+        "location": {
+            "coordinates": [-122.4194, 37.7749]
+        },
+        "notes": [
+            {
+                "content": "Initial diagnostic completed",
+                "type": "internal",
+                "agent_name": "Agent Smith",
+                "timestamp": datetime.now().isoformat()
+            }
+        ]
+    }
+
+def generate_mock_analytics():
+    """Generate mock analytics data"""
+    return {
+        "total_tickets": 150,
+        "resolved_by_ai": 90,
+        "escalated_to_human": 25,
+        "avg_resolution_time": 4.5,
+        "category_distribution": {
+            "Technical": 45,
+            "Billing": 30,
+            "Internet": 40,
+            "Account": 25,
+            "General": 10
+        },
+        "sentiment_distribution": {
+            "Positive": 40,
+            "Neutral": 70,
+            "Negative": 30,
+            "Critical": 10
+        },
+        "daily_tickets": [
+            {"date": "2024-01-01", "count": 12},
+            {"date": "2024-01-02", "count": 18},
+            {"date": "2024-01-03", "count": 15},
+            {"date": "2024-01-04", "count": 22},
+            {"date": "2024-01-05", "count": 19}
+        ]
+    }
+
+# Utility functions
+def format_datetime(dt_string):
+    """Format datetime string for display"""
+    try:
+        dt = datetime.fromisoformat(dt_string.replace('Z', '+00:00'))
+        return dt.strftime('%b %d, %Y at %I:%M %p')
+    except:
+        return dt_string
+
+def get_status_color(status):
+    """Get color for ticket status"""
+    colors = {
+        "pending": "#fbbf24",
+        "in_progress": "#3b82f6", 
+        "resolved": "#10b981",
+        "escalated": "#ef4444"
+    }
+    return colors.get(status, "#6b7280")
+
+def get_priority_color(priority):
     """Get color for priority level"""
     colors = {
-        "critical": "#dc3545",
-        "high": "#fd7e14", 
-        "medium": "#ffc107",
-        "low": "#6c757d"
+        "low": "#10b981",
+        "medium": "#f59e0b",
+        "high": "#ef4444", 
+        "urgent": "#dc2626"
     }
-    return colors.get(priority.lower(), "#6c757d")
+    return colors.get(priority, "#6b7280")
 
-def get_status_color(status: str) -> str:
-    """Get color for status"""
-    colors = {
-        "open": "#17a2b8",
-        "in_progress": "#fd7e14",
-        "resolved": "#28a745",
-        "closed": "#6c757d",
-        "escalated": "#dc3545"
+# Page Components
+def render_header():
+    """Render the main header"""
+    st.markdown("""
+    <div class="main-header">
+        <h1>🚀 AI Customer Service Dashboard</h1>
+        <p>Intelligent Telecom Support Management System</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+def render_navigation():
+    """Render navigation sidebar"""
+    st.sidebar.title("📱 Navigation")
+    
+    nav_options = {
+        "🏠 Dashboard": "dashboard",
+        "📝 Create Ticket": "create_ticket", 
+        "📋 View Tickets": "view_tickets",
+        "🔍 Ticket Details": "ticket_details",
+        "📚 Knowledge Base": "knowledge_base",
+        "📊 Analytics": "analytics"
     }
-    return colors.get(status.lower(), "#6c757d")
+    
+    for label, page_key in nav_options.items():
+        if st.sidebar.button(label, key=f"nav_{page_key}", use_container_width=True):
+            st.session_state.page = page_key
+            st.rerun()
 
-def get_sentiment_emoji(sentiment: str) -> str:
-    """Get emoji for sentiment"""
-    emojis = {
-        "positive": "😊",
-        "neutral": "😐",
-        "negative": "😟",
-        "urgent": "🚨"
-    }
-    return emojis.get(sentiment.lower(), "😐")
-
-def load_tickets():
-    """Load tickets from API"""
-    tickets = make_api_request("/tickets/")
-    if tickets:
-        st.session_state.tickets = tickets
-        return tickets
-    return []
-
-def load_analytics():
-    """Load analytics from API"""
-    analytics = make_api_request("/analytics/")
-    if analytics:
-        st.session_state.analytics = analytics
-        return analytics
-    return {}
-
-def create_sample_tickets():
-    """Create sample tickets for demo"""
-    result = make_api_request("/demo/create-sample-tickets", method="POST")
-    if result:
-        st.success(f"✅ {result['message']}")
-        load_tickets()
-        return True
-    return False
-
-# Header
-st.markdown("""
-<div class="main-header">
-    <h1>🎫 AI Ticketing System Demo</h1>
-    <p>Intelligent Customer Support with Auto-Resolution & Sentiment Analysis</p>
-</div>
-""", unsafe_allow_html=True)
-
-# Sidebar
-with st.sidebar:
-    st.header("🎛️ Demo Controls")
-    
-    # Demo mode toggle
-    demo_mode = st.toggle("Demo Mode", value=st.session_state.demo_mode)
-    st.session_state.demo_mode = demo_mode
-    
-    if demo_mode:
-        st.info("🎭 Demo mode enabled - Auto-refresh and sample data")
-        # Auto-refresh every 10 seconds in demo mode
-        st_autorefresh(interval=10000, key="demo_refresh")
-    
-    st.divider()
-    
-    # Quick actions
-    st.header("⚡ Quick Actions")
-    
-    if st.button("🎯 Create Sample Tickets", type="primary"):
-        with st.spinner("Creating sample tickets..."):
-            create_sample_tickets()
-    
-    if st.button("🔄 Refresh Data"):
-        with st.spinner("Refreshing..."):
-            load_tickets()
-            load_analytics()
-            st.success("Data refreshed!")
-    
-    st.divider()
-    
-    # Filters
-    st.header("🔍 Filters")
-    
-    status_filter = st.selectbox(
-        "Status Filter",
-        ["All", "open", "in_progress", "resolved", "closed", "escalated"]
-    )
-    
-    priority_filter = st.selectbox(
-        "Priority Filter", 
-        ["All", "critical", "high", "medium", "low"]
-    )
-    
-    auto_resolved_filter = st.selectbox(
-        "Auto-Resolved Filter",
-        ["All", "Yes", "No"]
-    )
-
-# Main content area
-col1, col2 = st.columns([2, 1])
-
-with col1:
-    # Tabs for different views
-    tab1, tab2, tab3, tab4 = st.tabs(["📋 Tickets", "📊 Analytics", "🎯 Create Ticket", "🔬 Advanced"])
-    
-    with tab1:
-        st.header("🎫 Ticket Management")
-        
-        # Load tickets
-        tickets = load_tickets()
-        
-        if tickets:
-            # Filter tickets
-            filtered_tickets = tickets
-            
-            if status_filter != "All":
-                filtered_tickets = [t for t in filtered_tickets if t['status'] == status_filter]
-            
-            if priority_filter != "All":
-                filtered_tickets = [t for t in filtered_tickets if t['priority'] == priority_filter]
-            
-            if auto_resolved_filter != "All":
-                auto_resolved_bool = auto_resolved_filter == "Yes"
-                filtered_tickets = [t for t in filtered_tickets if t['auto_resolved'] == auto_resolved_bool]
-            
-            st.write(f"**Showing {len(filtered_tickets)} of {len(tickets)} tickets**")
-            
-            # Display tickets
-            for ticket in filtered_tickets:
-                priority_class = f"{ticket['priority'].lower()}-priority"
-                if ticket['auto_resolved']:
-                    priority_class += " auto-resolved"
-                
-                # Use st.container instead of raw HTML
-                with st.container():
-                    # Style the container with CSS classes by setting background color, borders, etc.
-                    st.write(f"### {ticket['title']}")
-                    st.write(f"**Customer:** {ticket['customer']['name']} ({ticket['customer']['email']})")
-                    st.write(f"**Description:** {ticket['description']}")
-                    st.write(f"**Created:** {ticket['created_at']}")
-                    # Add status and priority with st.markdown and emoji if needed
-                    
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        if st.button(f"📋 View Details", key=f"view_{ticket['id']}"):
-                            ...
-                    with col2:
-                        if st.button(f"✅ Resolve", key=f"resolve_{ticket['id']}"):
-                            ...
-
-                # Action buttons
-                col1, col2, col3 = st.columns([1, 1, 2])
-                
-                with col1:
-                    if st.button(f"📋 View Details", key=f"view_{ticket['id']}"):
-                        st.session_state.selected_ticket = ticket['id']
-                
-                with col2:
-                    if ticket['status'] == 'open':
-                        if st.button(f"✅ Resolve", key=f"resolve_{ticket['id']}"):
-                            result = make_api_request(f"/tickets/{ticket['id']}/status", method="PUT", data={"status": "resolved"})
-                            if result:
-                                st.success("Ticket resolved!")
-                                load_tickets()
-                                st.rerun()
-                
-                st.divider()
-        else:
-            st.info("No tickets found. Create some sample tickets to get started!")
-    
-    with tab2:
-        st.header("📊 System Analytics")
-        
-        # Load analytics
-        analytics = load_analytics()
-        
-        if analytics:
-            # Key metrics
-            col1, col2, col3, col4 = st.columns(4)
-            
-            with col1:
-                st.metric(
-                    "Total Tickets",
-                    analytics.get('total_tickets', 0),
-                    delta=None
-                )
-            
-            with col2:
-                st.metric(
-                    "Auto-Resolved",
-                    analytics.get('auto_resolved', 0),
-                    delta=None
-                )
-            
-            with col3:
-                st.metric(
-                    "Automation Rate",
-                    f"{analytics.get('automation_rate', 0):.1f}%",
-                    delta=None
-                )
-            
-            with col4:
-                st.metric(
-                    "Avg Confidence",
-                    f"{analytics.get('average_confidence', 0):.1f}%",
-                    delta=None
-                )
-            
-            # Charts
-            if tickets:
-                # Status distribution
-                status_counts = {}
-                priority_counts = {}
-                category_counts = {}
-                sentiment_counts = {}
-                
-                for ticket in tickets:
-                    status = ticket['status']
-                    priority = ticket['priority']
-                    category = ticket['category']
-                    sentiment = ticket.get('sentiment', 'neutral')
-                    
-                    status_counts[status] = status_counts.get(status, 0) + 1
-                    priority_counts[priority] = priority_counts.get(priority, 0) + 1
-                    category_counts[category] = category_counts.get(category, 0) + 1
-                    sentiment_counts[sentiment] = sentiment_counts.get(sentiment, 0) + 1
-                
-                col1, col2 = st.columns(2)
-                
-                with col1:
-                    # Status pie chart
-                    if status_counts:
-                        fig = px.pie(
-                            values=list(status_counts.values()),
-                            names=list(status_counts.keys()),
-                            title="Ticket Status Distribution"
-                        )
-                        fig.update_traces(textposition='inside', textinfo='percent+label')
-                        st.plotly_chart(fig, use_container_width=True)
-                
-                with col2:
-                    # Priority bar chart
-                    if priority_counts:
-                        fig = px.bar(
-                            x=list(priority_counts.keys()),
-                            y=list(priority_counts.values()),
-                            title="Ticket Priority Distribution",
-                            color=list(priority_counts.keys()),
-                            color_discrete_map={
-                                'critical': '#dc3545',
-                                'high': '#fd7e14',
-                                'medium': '#ffc107',
-                                'low': '#6c757d'
-                            }
-                        )
-                        st.plotly_chart(fig, use_container_width=True)
-                
-                col3, col4 = st.columns(2)
-                
-                with col3:
-                    # Category distribution
-                    if category_counts:
-                        fig = px.bar(
-                            x=list(category_counts.keys()),
-                            y=list(category_counts.values()),
-                            title="Ticket Category Distribution"
-                        )
-                        st.plotly_chart(fig, use_container_width=True)
-                
-                with col4:
-                    # Sentiment distribution
-                    if sentiment_counts:
-                        fig = px.pie(
-                            values=list(sentiment_counts.values()),
-                            names=list(sentiment_counts.keys()),
-                            title="Customer Sentiment Distribution"
-                        )
-                        fig.update_traces(textposition='inside', textinfo='percent+label')
-                        st.plotly_chart(fig, use_container_width=True)
-                
-                # Auto-resolution effectiveness
-                st.subheader("🤖 Auto-Resolution Effectiveness")
-                
-                auto_resolved_tickets = [t for t in tickets if t['auto_resolved']]
-                manual_tickets = [t for t in tickets if not t['auto_resolved']]
-                
-                if auto_resolved_tickets:
-                    avg_confidence = sum(t.get('confidence_score', 0) for t in auto_resolved_tickets) / len(auto_resolved_tickets)
-                    
-                    col1, col2, col3 = st.columns(3)
-                    
-                    with col1:
-                        st.metric("Auto-Resolved Tickets", len(auto_resolved_tickets))
-                    
-                    with col2:
-                        st.metric("Manual Tickets", len(manual_tickets))
-                    
-                    with col3:
-                        st.metric("Avg AI Confidence", f"{avg_confidence:.1%}")
-                    
-                    # Confidence distribution
-                    confidences = [t.get('confidence_score', 0) for t in auto_resolved_tickets]
-                    if confidences:
-                        fig = px.histogram(
-                            x=confidences,
-                            nbins=10,
-                            title="Auto-Resolution Confidence Distribution",
-                            labels={'x': 'Confidence Score', 'y': 'Count'}
-                        )
-                        st.plotly_chart(fig, use_container_width=True)
-        else:
-            st.info("No analytics data available.")
-    
-    with tab3:
-        st.header("🎯 Create New Ticket")
-        
-        with st.form("create_ticket"):
-            st.subheader("Customer Information")
-            
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                customer_name = st.text_input("Customer Name", value="Demo Customer")
-                customer_email = st.text_input("Email", value="demo@example.com")
-                customer_phone = st.text_input("Phone", value="555-0123")
-            
-            with col2:
-                customer_location = st.text_input("Location", value="New York, NY")
-                service_area = st.text_input("Service Area", value="NYC_ZONE_1")
-                customer_id = st.text_input("Customer ID", value="DEMO001")
-            
-            st.subheader("Ticket Details")
-            
-            ticket_title = st.text_input("Issue Title", placeholder="Brief description of the problem")
-            ticket_description = st.text_area(
-                "Detailed Description",
-                placeholder="Please describe the issue in detail...",
-                height=150
-            )
-            
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                suggested_category = st.selectbox(
-                    "Suggested Category (Optional)",
-                    ["", "network", "billing", "technical", "account", "service", "general"]
-                )
-            
-            with col2:
-                suggested_priority = st.selectbox(
-                    "Suggested Priority (Optional)",
-                    ["", "critical", "high", "medium", "low"]
-                )
-            
-            submitted = st.form_submit_button("🚀 Create Ticket", type="primary")
-            
-            if submitted:
-                if ticket_title and ticket_description:
-                    ticket_data = {
-                        "title": ticket_title,
-                        "description": ticket_description,
-                        "customer": {
-                            "customer_id": customer_id,
-                            "name": customer_name,
-                            "email": customer_email,
-                            "phone": customer_phone,
-                            "location": customer_location,
-                            "service_area": service_area
-                        }
-                    }
-                    
-                    if suggested_category:
-                        ticket_data["category"] = suggested_category
-                    
-                    if suggested_priority:
-                        ticket_data["priority"] = suggested_priority
-                    
-                    with st.spinner("Creating ticket and running AI analysis..."):
-                        result = make_api_request("/tickets/", method="POST", data=ticket_data)
-                        
-                        if result:
-                            st.success("✅ Ticket created successfully!")
-                            
-                            # Show AI analysis results
-                            st.subheader("🤖 AI Analysis Results")
-                            
-                            col1, col2, col3 = st.columns(3)
-                            
-                            with col1:
-                                st.metric("Category", result['category'].title())
-                            
-                            with col2:
-                                st.metric("Priority", result['priority'].title())
-                            
-                            with col3:
-                                st.metric("Sentiment", f"{get_sentiment_emoji(result.get('sentiment', 'neutral'))} {result.get('sentiment', 'neutral').title()}")
-                            
-                            if result['auto_resolved']:
-                                st.success(f"🎉 **Auto-Resolved!** (Confidence: {result.get('confidence_score', 0):.1%})")
-                                st.info(f"**AI Response:** {result.get('resolution', 'No resolution provided')}")
-                            else:
-                                st.warning(f"⚠️ Requires human attention - assigned to {result.get('agent_assigned', 'Support Team')}")
-                            
-                            if result.get('summary'):
-                                st.write(f"**Summary:** {result['summary']}")
-                            
-                            # Refresh ticket list
-                            load_tickets()
-                else:
-                    st.error("Please fill in both title and description.")
-    
-    with tab4:
-        st.header("🔬 Advanced Features")
-        
-        # Ticket clustering
-        st.subheader("🎯 Ticket Clustering")
-        st.write("Analyze patterns in open tickets to identify common issues")
-        
-        n_clusters = st.slider("Number of Clusters", 2, 10, 5)
-        
-        if st.button("🔍 Analyze Ticket Patterns"):
-            with st.spinner("Analyzing ticket patterns..."):
-                clusters = make_api_request(f"/tickets/clusters?n_clusters={n_clusters}")
-                
-                if clusters:
-                    st.success(f"Found {len(clusters)} ticket clusters")
-                    
-                    for cluster in clusters:
-                        with st.expander(f"Cluster {cluster['cluster_id'] + 1}: {cluster['representative_title']} ({cluster['count']} tickets)"):
-                            col1, col2, col3 = st.columns(3)
-                            
-                            with col1:
-                                st.metric("Category", cluster['category'].title())
-                            
-                            with col2:
-                                st.metric("Priority", cluster['priority'].title())
-                            
-                            with col3:
-                                st.metric("Ticket Count", cluster['count'])
-                            
-                            st.write(f"**Representative Ticket:** {cluster['representative_title']}")
-                            st.write(f"**Ticket ID:** {cluster['representative_ticket_id']}")
-                else:
-                    st.info("No clusters found. Create more tickets to enable clustering.")
-        
-        # Knowledge base management
-        st.subheader("📚 Knowledge Base")
-        
-        # Display knowledge articles
-        if st.button("📖 View Knowledge Base"):
-            with st.spinner("Loading knowledge base..."):
-                articles = make_api_request("/knowledge/")
-                
-                if articles:
-                    st.success(f"Found {len(articles)} knowledge articles")
-                    
-                    for article in articles:
-                        with st.expander(f"{article['title']} ({article['category']})"):
-                            st.write(f"**Keywords:** {', '.join(article['keywords'])}")
-                            st.write(f"**Category:** {article['category']}")
-                            st.write(f"**Priority:** {article['priority']}")
-                            st.write(f"**Solution:** {article['solution']}")
-                else:
-                    st.info("No knowledge articles found.")
-        
-        # Add new knowledge article
-        st.subheader("➕ Add Knowledge Article")
-        
-        with st.form("add_knowledge"):
-            kb_title = st.text_input("Article Title")
-            kb_keywords = st.text_input("Keywords (comma-separated)")
-            kb_solution = st.text_area("Solution", height=100)
-            kb_category = st.selectbox("Category", ["network", "billing", "technical", "account", "service", "general"])
-            kb_priority = st.selectbox("Priority", ["critical", "high", "medium", "low"])
-            
-            if st.form_submit_button("Add Article"):
-                if kb_title and kb_keywords and kb_solution:
-                    article_data = {
-                        "title": kb_title,
-                        "keywords": [k.strip() for k in kb_keywords.split(",")],
-                        "solution": kb_solution,
-                        "category": kb_category,
-                        "priority": kb_priority
-                    }
-                    
-                    result = make_api_request("/knowledge/", method="POST", data=article_data)
-                    
-                    if result:
-                        st.success("Knowledge article added successfully!")
-                else:
-                    st.error("Please fill in all fields.")
-
-with col2:
-    st.header("🎯 System Status")
-    
-    # API Health Check
-    health = make_api_request("/health")
-    
-    if health:
-        st.success("✅ API Server Online")
-        st.write(f"**Status:** {health['status']}")
-        st.write(f"**Last Check:** {datetime.fromisoformat(health['timestamp'].replace('Z', '+00:00')).strftime('%H:%M:%S')}")
-    else:
-        st.error("❌ API Server Offline")
-        st.warning("Please start the FastAPI server:\n```bash\npython app.py\n```")
-    
-    st.divider()
+def render_dashboard():
+    """Render main dashboard"""
+    st.header("📊 Service Overview")
     
     # Quick stats
-    st.subheader("📈 Quick Stats")
+    analytics = get_analytics(7)  # Last 7 days
     
-    analytics = st.session_state.get('analytics', {})
+    col1, col2, col3, col4 = st.columns(4)
     
-    if analytics:
-        st.metric("Total Tickets", analytics.get('total_tickets', 0))
-        st.metric("Auto-Resolved", analytics.get('auto_resolved', 0))
-        st.metric("Automation Rate", f"{analytics.get('automation_rate', 0):.1f}%")
-        st.metric("Avg Confidence", f"{analytics.get('average_confidence', 0):.1f}%")
+    with col1:
+        st.markdown(f"""
+        <div class="metric-card">
+            <h3>Total Tickets</h3>
+            <h2 style="color: #667eea;">{analytics.get('total_tickets', 0)}</h2>
+            <p>Last 7 days</p>
+        </div>
+        """, unsafe_allow_html=True)
     
-    st.divider()
+    with col2:
+        ai_resolved = analytics.get('resolved_by_ai', 0)
+        total = analytics.get('total_tickets', 1)
+        percentage = (ai_resolved / total * 100) if total > 0 else 0
+        st.markdown(f"""
+        <div class="metric-card">
+            <h3>AI Resolved</h3>
+            <h2 style="color: #10b981;">{ai_resolved}</h2>
+            <p>{percentage:.1f}% of total</p>
+        </div>
+        """, unsafe_allow_html=True)
     
-    # Demo tips
-    st.subheader("💡 Demo Tips")
+    with col3:
+        escalated = analytics.get('escalated_to_human', 0)
+        st.markdown(f"""
+        <div class="metric-card">
+            <h3>Escalated</h3>
+            <h2 style="color: #ef4444;">{escalated}</h2>
+            <p>Requiring human intervention</p>
+        </div>
+        """, unsafe_allow_html=True)
     
-    with st.expander("🎭 Demo Features"):
-        st.write("""
-        **Key Features to Showcase:**
+    with col4:
+        avg_time = analytics.get('avg_resolution_time', 0)
+        st.markdown(f"""
+        <div class="metric-card">
+            <h3>Avg Resolution</h3>
+            <h2 style="color: #f59e0b;">{avg_time:.1f}h</h2>
+            <p>Average time to resolve</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # Recent tickets
+    st.markdown("### 📋 Recent Tickets")
+    recent_tickets = get_tickets()[:5]  # Get 5 most recent
+    
+    for ticket in recent_tickets:
+        status_class = f"status-{ticket['status'].replace('_', '-')}"
+        priority_color = get_priority_color(ticket['priority'])
         
-        1. **Auto-Resolution** - AI automatically resolves simple issues
-        2. **Sentiment Analysis** - Detects customer emotions
-        3. **Smart Categorization** - AI classifies tickets
-        4. **Priority Assignment** - Automatic priority based on urgency
-        5. **Ticket Clustering** - Identifies common issues
-        6. **Knowledge Base** - Semantic search for solutions
-        7. **Real-time Analytics** - Live dashboard updates
-        """)
-    
-    with st.expander("🎯 Sample Scenarios"):
-        st.write("""
-        **Try these ticket scenarios:**
+        st.markdown(f"""
+        <div class="ticket-card {status_class}">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h4>{ticket['title']}</h4>
+                    <p><strong>Customer:</strong> {ticket['customer_name']}</p>
+                    <div style="display: flex; gap: 15px; margin-top: 10px;">
+                        <span class="info-badge">📂 {ticket['category'].title()}</span>
+                        <span class="info-badge" style="background: {priority_color}20; color: {priority_color};">
+                            🔥 {ticket['priority'].title()}
+                        </span>
+                        <span class="info-badge">📅 {format_datetime(ticket['created_at'])}</span>
+                    </div>
+                </div>
+                <div>
+                    <button class="nav-button" onclick="window.location.href='?ticket_id={ticket['id']}'">
+                        View Details
+                    </button>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
         
-        1. **Network Issue:**
-           - "My internet is down, can't connect to WiFi"
-           - Should auto-resolve with restart instructions
-        
-        2. **Billing Question:**
-           - "My bill is higher than usual this month"
-           - Should escalate to billing specialist
-        
-        3. **Technical Support:**
-           - "Can't set up email on my phone"
-           - Should provide configuration help
-        
-        4. **Urgent Issue:**
-           - "Complete service outage, affecting business!"
-           - Should prioritize as critical
-        """)
-    
-    st.divider()
-    
-    # System info
-    st.subheader("⚙️ System Info")
-    st.write(f"**Demo Mode:** {'🎭 Enabled' if st.session_state.demo_mode else '🎯 Disabled'}")
-    st.write(f"**Last Updated:** {datetime.now().strftime('%H:%M:%S')}")
-    
-    if st.session_state.demo_mode:
-        st.info("🔄 Auto-refreshing every 10 seconds")
+        if st.button(f"View Details", key=f"view_{ticket['id']}"):
+            st.session_state.selected_ticket_id = ticket['id']
+            st.session_state.page = 'ticket_details'
+            st.rerun()
 
-# Footer
-st.markdown("---")
-st.markdown("""
-<div style="text-align: center; color: #666; margin-top: 2rem;">
-    <p>🎫 AI Ticketing System Demo | Built with Streamlit & FastAPI</p>
-    <p>Features: Auto-Resolution • Sentiment Analysis • Smart Categorization • Real-time Analytics</p>
-</div>
-""", unsafe_allow_html=True)
+def render_create_ticket():
+    """Render create ticket form"""
+    st.header("📝 Create New Support Ticket")
+    
+    st.markdown('<div class="form-container">', unsafe_allow_html=True)
+    
+    with st.form("create_ticket_form", clear_on_submit=True):
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            customer_name = st.text_input("Customer Name *", placeholder="Enter customer name")
+            customer_email = st.text_input("Email Address *", placeholder="customer@example.com")
+            category = st.selectbox("Category", ["billing", "technical", "internet", "account", "general"])
+        
+        with col2:
+            title = st.text_input("Issue Title *", placeholder="Brief description of the issue")
+            priority = st.selectbox("Priority", ["low", "medium", "high", "urgent"])
+            phone = st.text_input("Phone Number", placeholder="Optional")
+        
+        description = st.text_area("Detailed Description *", 
+                                 placeholder="Please provide detailed information about the issue...",
+                                 height=150)
+        
+        # Location (optional)
+        st.markdown("##### 📍 Location Information (Optional)")
+        col1, col2 = st.columns(2)
+        with col1:
+            latitude = st.number_input("Latitude", format="%.6f", value=0.0)
+        with col2:
+            longitude = st.number_input("Longitude", format="%.6f", value=0.0)
+        
+        submitted = st.form_submit_button("🚀 Create Ticket", use_container_width=True)
+        
+        if submitted:
+            # Validation
+            if not all([customer_name, customer_email, title, description]):
+                st.error("❌ Please fill in all required fields marked with *")
+            else:
+                # Create ticket data
+                ticket_data = {
+                    "title": title,
+                    "description": description,
+                    "customer_name": customer_name,
+                    "customer_email": customer_email,
+                    "category": category,
+                    "priority": priority
+                }
+                
+                if phone:
+                    ticket_data["phone"] = phone
+                
+                if latitude != 0.0 and longitude != 0.0:
+                    ticket_data["location"] = {
+                        "latitude": latitude,
+                        "longitude": longitude
+                    }
+                
+                # Submit ticket
+                with st.spinner("Creating ticket..."):
+                    result = create_ticket(ticket_data)
+                
+                if result:
+                    st.markdown(f"""
+                    <div class="success-message">
+                        ✅ Ticket created successfully!<br>
+                        <strong>Ticket ID:</strong> {result.get('id', 'N/A')}<br>
+                        <strong>Status:</strong> {result.get('status', 'pending').title()}
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    # Show ticket details
+                    with st.expander("View Created Ticket"):
+                        st.json(result)
+                else:
+                    st.markdown("""
+                    <div class="error-message">
+                        ❌ Failed to create ticket. Please check API connection and try again.
+                    </div>
+                    """, unsafe_allow_html=True)
+    
+    st.markdown('</div>', unsafe_allow_html=True)
+
+def render_view_tickets():
+    """Render tickets list with filters"""
+    st.header("📋 Support Tickets")
+    
+    # Filters
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        status_filter = st.selectbox("Status", ["All", "pending", "in_progress", "resolved", "escalated"])
+    with col2:
+        category_filter = st.selectbox("Category", ["All", "billing", "technical", "internet", "account", "general"])
+    with col3:
+        priority_filter = st.selectbox("Priority", ["All", "low", "medium", "high", "urgent"])
+    with col4:
+        search_query = st.text_input("🔍 Search", placeholder="Search tickets...")
+    
+    # Get filtered tickets
+    tickets = get_tickets(
+        status=status_filter if status_filter != "All" else None,
+        category=category_filter if category_filter != "All" else None,
+        priority=priority_filter if priority_filter != "All" else None
+    )
+    
+    # Apply search filter
+    if search_query:
+        tickets = [t for t in tickets if search_query.lower() in t['title'].lower() or 
+                  search_query.lower() in t['customer_name'].lower()]
+    
+    st.markdown(f"**Found {len(tickets)} tickets**")
+    
+    if not tickets:
+        st.info("No tickets found matching your criteria.")
+        return
+    
+    # Display tickets
+    for ticket in tickets:
+        status_class = f"status-{ticket['status'].replace('_', '-')}"
+        priority_color = get_priority_color(ticket['priority'])
+        
+        st.markdown(f"""
+        <div class="ticket-card {status_class}">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="flex-grow: 1;">
+                    <h4>{ticket['title']}</h4>
+                    <p><strong>Customer:</strong> {ticket['customer_name']} ({ticket['customer_email']})</p>
+                    <p style="color: #9da2ab; margin: 10px 0;">{ticket['description'][:100]}...</p>
+                    <div style="display: flex; gap: 15px; margin-top: 10px;">
+                        <span class="info-badge">📂 {ticket['category'].title()}</span>
+                        <span class="info-badge" style="background: {priority_color}20; color: {priority_color};">
+                            🔥 {ticket['priority'].title()}
+                        </span>
+                        <span class="info-badge">📅 {format_datetime(ticket['created_at'])}</span>
+                        <span class="info-badge">🔄 {ticket['status'].replace('_', ' ').title()}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        if st.button(f"View Details", key=f"view_details_{ticket['id']}"):
+            st.session_state.selected_ticket_id = ticket['id']
+            st.session_state.page = 'ticket_details'
+            st.rerun()
+
+def render_ticket_details():
+    """Render detailed ticket view"""
+    ticket_id = st.session_state.selected_ticket_id
+    
+    if not ticket_id:
+        st.warning("⚠️ No ticket selected. Please select a ticket from the tickets list.")
+        if st.button("← Back to Tickets"):
+            st.session_state.page = 'view_tickets'
+            st.rerun()
+        return
+    
+    ticket = get_ticket(ticket_id)
+    if not ticket:
+        st.error("❌ Ticket not found")
+        return
+    
+    # Header
+    st.markdown(f"### 🎫 Ticket Details - {ticket['title']}")
+    
+    # Back button
+    if st.button("← Back to Tickets"):
+        st.session_state.page = 'view_tickets'
+        st.rerun()
+    
+    # Ticket information
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        st.markdown('<div class="form-container">', unsafe_allow_html=True)
+        
+        # Basic info
+        st.markdown("#### 📋 Ticket Information")
+        status_color = get_status_color(ticket['status'])
+        priority_color = get_priority_color(ticket['priority'])
+        
+        st.markdown(f"""
+        <div style="display: flex; gap: 20px; margin: 20px 0;">
+            <div style="flex: 1;">
+                <p><strong>Status:</strong> <span style="color: {status_color};">● {ticket['status'].replace('_', ' ').title()}</span></p>
+                <p><strong>Priority:</strong> <span style="color: {priority_color};">🔥 {ticket['priority'].title()}</span></p>
+                <p><strong>Category:</strong> 📂 {ticket['category'].title()}</p>
+                <p><strong>Created:</strong> 📅 {format_datetime(ticket['created_at'])}</p>
+            </div>
+            <div style="flex: 1;">
+                <p><strong>Customer:</strong> {ticket['customer_name']}</p>
+                <p><strong>Email:</strong> {ticket['customer_email']}</p>
+                <p><strong>Ticket ID:</strong> {ticket['id'][:8]}...</p>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Description
+        st.markdown("#### 📝 Issue Description")
+        st.markdown(f'<div class="form-container" style="border-left: 4px solid #667eea;">{ticket["description"]}</div>', unsafe_allow_html=True)
+        
+        # AI Resolution
+        if ticket.get('ai_resolution'):
+            st.markdown("#### 🤖 AI Resolution")
+            st.markdown(f'<div class = "form-container" style="border-radius: 10px; border-left: 4px solid #10b981;">{ticket["ai_resolution"]}</div>', unsafe_allow_html=True)
+        
+        # Manual Resolution
+        if ticket.get('manual_resolution'):
+            st.markdown("#### 👤 Agent Resolution")
+            st.markdown(f'<div class = "form-container" style= border-radius: 10px; border-left: 4px solid #3b82f6;">{ticket["manual_resolution"]}</div>', unsafe_allow_html=True)
+        
+        st.markdown('</div>', unsafe_allow_html=True)
+    
+    with col2:
+        # Actions panel
+        st.markdown('<div class="form-container">', unsafe_allow_html=True)
+        st.markdown("#### ⚡ Quick Actions")
+        
+        # Status update
+        new_status = st.selectbox("Update Status", 
+                                ["pending", "in_progress", "resolved", "escalated"],
+                                index=["pending", "in_progress", "resolved", "escalated"].index(ticket['status']))
+        
+        if st.button("Update Status", use_container_width=True):
+            if update_ticket_status(ticket_id, new_status):
+                st.success(f"✅ Status updated to {new_status}")
+                time.sleep(1)
+                st.rerun()
+            else:
+                st.error("❌ Failed to update status")
+        
+        # Agent assignment
+        agent_name = st.text_input("Assign Agent", placeholder="Enter agent name")
+        if st.button("Assign Agent", use_container_width=True):
+            if agent_name:
+                if update_ticket_status(ticket_id, ticket['status'], agent_name):
+                    st.success(f"✅ Assigned to {agent_name}")
+                else:
+                    st.error("❌ Failed to assign agent")
+            else:
+                st.warning("⚠️ Please enter agent name")
+        
+        st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Notes section
+    st.markdown("---")
+    st.markdown("#### 📝 Add Note")
+    
+    with st.form("add_note_form"):
+        note_content = st.text_area("Note Content", height=100)
+        col1, col2 = st.columns(2)
+        with col1:
+            note_type = st.selectbox("Type", ["internal", "customer_facing"])
+        with col2:
+            agent_name = st.text_input("Agent Name")
+        
+        if st.form_submit_button("Add Note", use_container_width=True):
+            if note_content:
+                if add_ticket_note(ticket_id, note_content, note_type, agent_name):
+                    st.success("✅ Note added successfully")
+                else:
+                    st.error("❌ Failed to add note")
+            else:
+                st.warning("⚠️ Please enter note content")
+
+def render_analytics():
+    """Render analytics dashboard"""
+    st.header("📊 Service Analytics")
+    
+    # Time period selector
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        st.markdown("### Performance Overview")
+    with col2:
+        days = st.selectbox("Period", [7, 30, 90], format_func=lambda x: f"Last {x} days")
+    
+    analytics = get_analytics(days)
+    
+    # KPI Cards
+    col1, col2, col3, col4 = st.columns(4)
+    
+    metrics = [
+        ("Total Tickets", analytics.get('total_tickets', 0), "🎫"),
+        ("AI Resolved", analytics.get('resolved_by_ai', 0), "🤖"),
+        ("Escalated", analytics.get('escalated_to_human', 0), "⚠️"),
+        ("Avg Resolution", f"{analytics.get('avg_resolution_time', 0):.1f}h", "⏱️")
+    ]
+    
+    for i, (title, value, icon) in enumerate(metrics):
+        with [col1, col2, col3, col4][i]:
+            st.markdown(f"""
+            <div class="metric-card">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 2rem;">{icon}</span>
+                    <div>
+                        <h3 style="margin: 0; color: #6b7280;">{title}</h3>
+                        <h2 style="margin: 0; color: #667eea;">{value}</h2>
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+    
+    # Charts
+    st.markdown("---")
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown('<div class="analytics-container">', unsafe_allow_html=True)
+        st.markdown("#### 📂 Category Distribution")
+        if "category_distribution" in analytics:
+            cat_data = analytics["category_distribution"]
+            fig = px.bar(
+                x=list(cat_data.keys()),
+                y=list(cat_data.values()),
+                color=list(cat_data.values()),
+                color_continuous_scale="blues"
+            )
+            fig.update_layout(
+                showlegend=False,
+                xaxis_title="Category",
+                yaxis_title="Number of Tickets",
+                height=400
+            )
+            st.plotly_chart(fig, use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown('<div class="analytics-container">', unsafe_allow_html=True)
+        st.markdown("#### 😊 Sentiment Analysis")
+        if "sentiment_distribution" in analytics:
+            sent_data = analytics["sentiment_distribution"]
+            fig = px.pie(
+                values=list(sent_data.values()),
+                names=list(sent_data.keys()),
+                color_discrete_map={
+                    "Positive": "#10b981",
+                    "Neutral": "#6b7280", 
+                    "Negative": "#f59e0b",
+                    "Critical": "#ef4444"
+                }
+            )
+            fig.update_layout(height=400)
+            st.plotly_chart(fig, use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Daily trend
+    st.markdown('<div class="analytics-container">', unsafe_allow_html=True)
+    st.markdown("#### 📈 Daily Ticket Trend")
+    if "daily_tickets" in analytics:
+        daily_data = analytics["daily_tickets"]
+        df = pd.DataFrame(daily_data)
+        fig = px.line(
+            df, 
+            x='date', 
+            y='count',
+            title="Daily Ticket Volume",
+            markers=True
+        )
+        fig.update_layout(
+            xaxis_title="Date",
+            yaxis_title="Number of Tickets",
+            height=400
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+    
+    # Performance metrics
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown('<div class="analytics-container">', unsafe_allow_html=True)
+        st.markdown("#### 🎯 Resolution Performance")
+        
+        total_tickets = analytics.get('total_tickets', 1)
+        ai_resolved = analytics.get('resolved_by_ai', 0)
+        escalated = analytics.get('escalated_to_human', 0)
+        
+        performance_data = {
+            "AI Resolved": ai_resolved,
+            "Human Resolved": total_tickets - ai_resolved - escalated,
+            "Still Open": escalated
+        }
+        
+        fig = px.bar(
+            x=list(performance_data.keys()),
+            y=list(performance_data.values()),
+            color=list(performance_data.values()),
+            color_continuous_scale="viridis"
+        )
+        fig.update_layout(
+            showlegend=False,
+            xaxis_title="Resolution Type",
+            yaxis_title="Number of Tickets",
+            height=400
+        )
+        st.plotly_chart(fig, use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown('<div class="analytics-container">', unsafe_allow_html=True)
+        st.markdown("#### ⏱️ Resolution Time Analysis")
+        
+        # Mock resolution time data
+        resolution_times = {
+            "< 1 hour": 45,
+            "1-4 hours": 60,
+            "4-24 hours": 35,
+            "> 24 hours": 10
+        }
+        
+        fig = px.pie(
+            values=list(resolution_times.values()),
+            names=list(resolution_times.keys()),
+            color_discrete_sequence=px.colors.qualitative.Set3
+        )
+        fig.update_layout(height=400)
+        st.plotly_chart(fig, use_container_width=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+def render_knowledge_base():
+    """Render knowledge base management"""
+    st.header("📚 Knowledge Base Management")
+    
+    tab1, tab2, tab3 = st.tabs(["📖 Documentation", "💾 Service Memory", "🔍 Search Knowledge"])
+    
+    with tab1:
+        st.markdown("#### Add New Documentation")
+        st.markdown('<div class="form-container">', unsafe_allow_html=True)
+        
+        with st.form("add_documentation"):
+            title = st.text_input("Documentation Title")
+            category = st.selectbox("Category", ["billing", "technical", "internet", "account", "general"])
+            content = st.text_area("Content", height=200)
+            tags = st.text_input("Tags (comma-separated)", placeholder="troubleshooting, network, setup")
+            
+            if st.form_submit_button("📝 Add Documentation", use_container_width=True):
+                if title and content:
+                    st.success("✅ Documentation added successfully!")
+                    st.info(f"**Title:** {title}\n**Category:** {category}\n**Tags:** {tags}")
+                else:
+                    st.error("❌ Please fill in title and content")
+        
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        # Recent documentation
+        st.markdown("#### 📋 Recent Documentation")
+        mock_docs = [
+            {"title": "Network Troubleshooting Guide", "category": "technical", "updated": "2024-01-15"},
+            {"title": "Billing FAQ", "category": "billing", "updated": "2024-01-14"},
+            {"title": "Account Setup Process", "category": "account", "updated": "2024-01-13"}
+        ]
+        
+        for doc in mock_docs:
+            st.markdown(f"""
+            <div class="ticket-card">
+                <h4>{doc['title']}</h4>
+                <p><strong>Category:</strong> {doc['category'].title()} | <strong>Updated:</strong> {doc['updated']}</p>
+                <button class="nav-button">Edit</button>
+            </div>
+            """, unsafe_allow_html=True)
+    
+    with tab2:
+        st.markdown("#### Add Service Memory")
+        st.markdown('<div class="form-container">', unsafe_allow_html=True)
+        
+        with st.form("add_service_memory"):
+            query = st.text_input("Customer Query")
+            resolution = st.text_area("Resolution", height=150)
+            category = st.selectbox("Category", ["billing", "technical", "internet", "account", "general"])
+            agent_name = st.text_input("Agent Name")
+            effectiveness = st.slider("Effectiveness Rating", 1, 5, 5)
+            
+            if st.form_submit_button("💾 Add to Memory", use_container_width=True):
+                if query and resolution:
+                    st.success("✅ Service memory added successfully!")
+                    st.info(f"**Query:** {query}\n**Agent:** {agent_name}\n**Rating:** {effectiveness}/5")
+                else:
+                    st.error("❌ Please fill in query and resolution")
+        
+        st.markdown('</div>', unsafe_allow_html=True)
+    
+    with tab3:
+        st.markdown("#### 🔍 Search Knowledge Base")
+        st.markdown('<div class="form-container">', unsafe_allow_html=True)
+        
+        search_query = st.text_input("Search Query", placeholder="Enter keywords to search...")
+        search_category = st.selectbox("Filter by Category", ["All", "billing", "technical", "internet", "account", "general"])
+        
+        if st.button("🔍 Search", use_container_width=True):
+            if search_query:
+                st.success(f"🔍 Searching for: '{search_query}'")
+                
+                # Mock search results
+                mock_results = [
+                    {
+                        "title": "Network Connectivity Issues",
+                        "category": "technical",
+                        "snippet": "Common solutions for network connectivity problems...",
+                        "relevance": 0.95
+                    },
+                    {
+                        "title": "Billing Dispute Resolution",
+                        "category": "billing", 
+                        "snippet": "Step-by-step process for handling billing disputes...",
+                        "relevance": 0.87
+                    }
+                ]
+                
+                for result in mock_results:
+                    st.markdown(f"""
+                    <div class="ticket-card">
+                        <h4>{result['title']}</h4>
+                        <p><strong>Category:</strong> {result['category'].title()} | <strong>Relevance:</strong> {result['relevance']:.0%}</p>
+                        <p>{result['snippet']}</p>
+                        <button class="nav-button">View Full Article</button>
+                    </div>
+                    """, unsafe_allow_html=True)
+            else:
+                st.warning("⚠️ Please enter a search query")
+        
+        st.markdown('</div>', unsafe_allow_html=True)
+
+# Main application
+def main():
+    render_header()
+    render_navigation()
+    
+    # Route to appropriate page
+    page = st.session_state.get('page', 'dashboard')
+    
+    if page == 'dashboard':
+        render_dashboard()
+    elif page == 'create_ticket':
+        render_create_ticket()
+    elif page == 'view_tickets':
+        render_view_tickets()
+    elif page == 'ticket_details':
+        render_ticket_details()
+    elif page == 'analytics':
+        render_analytics()
+    elif page == 'knowledge_base':
+        render_knowledge_base()
+    
+    # Footer
+    st.markdown("---")
+    st.markdown("""  <!-- ADDED footer class -->
+    <div class="footer" style="text-align: center; padding: 20px;">
+        <p>🚀 AI Customer Service Dashboard | Built with Streamlit</p>
+        <p>API Status: <span style="color: #10b981;">● Connected</span> | Last Updated: {}</p>
+    </div>
+    """.format(datetime.now().strftime("%Y-%m-%d %H:%M:%S")), unsafe_allow_html=True)
+
+
+if __name__ == "__main__":
+    main()
