@@ -1032,8 +1032,9 @@ def render_ticket_map(API_BASE_URL: str):
 
     df = pd.DataFrame(records)
 
+    st.sidebar.markdown("___")
     st.sidebar.header("🔍 Filters")
-
+    
     # Priority filter
     priorities = sorted(df["priority"].dropna().unique().tolist())
     selected_priorities = st.sidebar.multiselect("Priority", priorities, default=priorities)
