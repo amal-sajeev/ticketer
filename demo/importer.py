@@ -84,7 +84,7 @@ import json
 url = "http://localhost:8000/tickets"
 
 payload = [
-   {"title": "Internet outage in Al-Olaya", "description": "No internet connection since morning. Router lights are red. Working from home is impossible!", "customer_email": "ahmed@example.com", "customer_name": "Ahmed Al-Saud", "location": {  "latitude": 24.7136,   "longitude": 46.6753}},
+  {"title": "Internet outage in Al-Olaya", "description": "No internet connection since morning. Router lights are red. Working from home is impossible!", "customer_email": "ahmed@example.com", "customer_name": "Ahmed Al-Saud", "location": {  "latitude": 24.7136,   "longitude": 46.6753}},
   {"title": "Unexpected roaming charges", "description": "Charged 350 SAR for UAE roaming despite activating package. Was only there for 3 days!", "customer_email": "sara@example.com", "customer_name": "Sara Mohammed", "location": {  "latitude": 21.5433,   "longitude": 39.1728}},
   {"title": "5G not working in Dammam", "description": "Phone shows 5G but speed is like 3G. Tried different locations in city center. iPhone 14 Pro.", "customer_email": "khalid@example.com", "customer_name": "Khalid Hassan", "location": {  "latitude": 26.4207,   "longitude": 50.0888}},
   {"title": "Can't pay bill online", "description": "Payment fails on STC Pay app with 'processor error'. Tried 3 cards that work elsewhere.", "customer_email": "fatima@example.com", "customer_name": "Fatima Abdullah"},

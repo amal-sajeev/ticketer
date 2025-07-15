@@ -989,14 +989,12 @@ def render_knowledge_base():
 def render_ticket_map(API_BASE_URL: str):
     """
     Renders an interactive map page showing ticket locations.
-    Expects API_BASE_URL to be your FastAPI server root URL.
+    Filters: priority, status, category, customer, title, date (if available).
+    Colors: markers colored by priority.
     """
 
     st.title("📍 Customer Service Tickets Map")
 
-    # -------------------------------
-    # Fetch ticket data
-    # -------------------------------
     @st.cache_data
     def get_tickets():
         try:
@@ -1012,49 +1010,75 @@ def render_ticket_map(API_BASE_URL: str):
 
     tickets = get_tickets()
 
-    # -------------------------------
     # Extract valid locations
-    # -------------------------------
-    locations = []
-
+    records = []
     for t in tickets:
         loc = t.get("location")
         if loc and loc.get("latitude") is not None and loc.get("longitude") is not None:
-            locations.append({
+            records.append({
                 "lat": loc["latitude"],
                 "lon": loc["longitude"],
                 "title": t.get("title"),
                 "status": t.get("status"),
                 "priority": t.get("priority"),
                 "category": t.get("category"),
-                "customer": t.get("customer_name")
+                "customer": t.get("customer_name"),
+                "created_at": t.get("created_at")
             })
 
-    if not locations:
+    if not records:
         st.info("No tickets with valid location data found.")
         return
 
-    df = pd.DataFrame(locations)
+    df = pd.DataFrame(records)
 
-    # -------------------------------
-    # Sidebar filters
-    # -------------------------------
     st.sidebar.header("🔍 Filters")
 
-    priorities = df["priority"].dropna().unique().tolist()
+    # Priority filter
+    priorities = sorted(df["priority"].dropna().unique().tolist())
     selected_priorities = st.sidebar.multiselect("Priority", priorities, default=priorities)
 
-    statuses = df["status"].dropna().unique().tolist()
+    # Status filter
+    statuses = sorted(df["status"].dropna().unique().tolist())
     selected_statuses = st.sidebar.multiselect("Status", statuses, default=statuses)
 
-    categories = df["category"].dropna().unique().tolist()
+    # Category filter
+    categories = sorted(df["category"].dropna().unique().tolist())
     selected_categories = st.sidebar.multiselect("Category", categories, default=categories)
 
+    # Customer filter
+    customers = sorted(df["customer"].dropna().unique().tolist())
+    selected_customers = st.sidebar.multiselect("Customer", customers, default=customers)
+
+    # Title filter
+    title_substring = st.sidebar.text_input("Title contains (optional)").strip().lower()
+
+    # Date filter
+    if df["created_at"].notnull().any():
+        df["created_at"] = pd.to_datetime(df["created_at"])
+        min_date = df["created_at"].min().date()
+        max_date = df["created_at"].max().date()
+        date_range = st.sidebar.date_input("Created date range", [min_date, max_date])
+    else:
+        date_range = None
+
+    # Apply all filters
     filtered_df = df[
         df["priority"].isin(selected_priorities) &
         df["status"].isin(selected_statuses) &
-        df["category"].isin(selected_categories)
+        df["category"].isin(selected_categories) &
+        df["customer"].isin(selected_customers)
     ]
+
+    if title_substring:
+        filtered_df = filtered_df[filtered_df["title"].str.lower().str.contains(title_substring)]
+
+    if date_range and len(date_range) == 2 and df["created_at"].notnull().any():
+        start, end = date_range
+        filtered_df = filtered_df[
+            (df["created_at"].dt.date >= start) &
+            (df["created_at"].dt.date <= end)
+        ]
 
     st.subheader(f"Showing {len(filtered_df)} tickets")
 
@@ -1063,13 +1087,28 @@ def render_ticket_map(API_BASE_URL: str):
         return
 
     # -------------------------------
-    # Scatterplot map
+    # Map priority to color
+    # -------------------------------
+    priority_colors = {
+        "low": [0, 200, 0, 180],        # Green
+        "medium": [255, 165, 0, 180],   # Orange
+        "high": [255, 0, 0, 180],       # Red
+        "urgent": [128, 0, 128, 180]    # Purple
+    }
+
+    def get_color(priority):
+        return priority_colors.get(priority.lower(), [0, 0, 255, 180])  # Fallback: Blue
+
+    filtered_df["color"] = filtered_df["priority"].apply(get_color)
+
+    # -------------------------------
+    # Scatterplot with color
     # -------------------------------
     layer = pdk.Layer(
         "ScatterplotLayer",
         data=filtered_df,
         get_position='[lon, lat]',
-        get_color='[200, 30, 0, 160]',
+        get_color='color',
         get_radius=5000,
         pickable=True
     )
