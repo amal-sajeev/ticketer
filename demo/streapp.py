@@ -208,12 +208,13 @@ def create_ticket(ticket_data):
         st.error(f"API connection failed: {str(e)}")
         return None
 
-def get_tickets(status=None, category=None, priority=None):
+def get_tickets(status=None, category=None, priority=None, limit:int = None):
     """Fetch tickets with optional filters"""
     params = {}
     if status: params["status"] = status
     if category: params["category"] = category
     if priority: params["priority"] = priority
+    if limit: params["limit"] = limit
     
     try:
         response = requests.get(f"{API_BASE_URL}/tickets", params=params, timeout=10)
@@ -342,6 +343,25 @@ def generate_mock_analytics():
             {"date": "2024-01-05", "count": 19}
         ]
     }
+
+def get_documentation():
+    """Fetch documentation from knowledge base"""
+    try:
+        response = requests.get(f"{API_BASE_URL}/knowledge/documentation", timeout=10)
+        return response.json() if response.status_code == 200 else []
+    except requests.exceptions.RequestException as e:
+        st.error(f"API connection failed: {str(e)}")
+        return []
+
+def get_service_memory():
+    """Fetch service memory entries"""
+    try:
+        response = requests.get(f"{API_BASE_URL}/knowledge/service-memory", timeout=10)
+        return response.json() if response.status_code == 200 else []
+    except requests.exceptions.RequestException as e:
+        st.error(f"API connection failed: {str(e)}")
+        return []
+
 
 # Utility functions
 def format_datetime(dt_string):
@@ -882,7 +902,7 @@ def render_analytics():
         st.plotly_chart(fig, use_container_width=True)
     
 def render_knowledge_base():
-    """Render knowledge base management"""
+    """Render knowledge base management with real API data"""
     st.header("📚 Knowledge Base Management")
     
     tab1, tab2, tab3 = st.tabs(["📖 Documentation", "💾 Service Memory", "🔍 Search Knowledge"])
@@ -899,27 +919,28 @@ def render_knowledge_base():
             
             if st.form_submit_button("📝 Add Documentation", use_container_width=True):
                 if title and content:
+                    # POST request would go here
                     st.success("✅ Documentation added successfully!")
-                    st.info(f"**Title:** {title}\n**Category:** {category}\n**Tags:** {tags}")
                 else:
                     st.error("❌ Please fill in title and content")
         
-        st.markdown('</div>', unsafe_allow_html=True)
+        # Display real documentation
+        st.markdown("#### 📋 Documentation Library")
+        with st.spinner("Loading documentation..."):
+            docs = get_documentation()
         
-        # Recent documentation
-        st.markdown("#### 📋 Recent Documentation")
-        mock_docs = [
-            {"title": "Network Troubleshooting Guide", "category": "technical", "updated": "2024-01-15"},
-            {"title": "Billing FAQ", "category": "billing", "updated": "2024-01-14"},
-            {"title": "Account Setup Process", "category": "account", "updated": "2024-01-13"}
-        ]
-        
-        for doc in mock_docs:
+        if not docs:
+            st.info("No documentation found in the knowledge base.")
+            return
+            
+        for doc in docs:
             st.markdown(f"""
             <div class="ticket-card">
-                <h4>{doc['title']}</h4>
-                <p><strong>Category:</strong> {doc['category'].title()} | <strong>Updated:</strong> {doc['updated']}</p>
-                <button class="nav-button">Edit</button>
+                <h4>{doc.get('title', 'Untitled')}</h4>
+                <p><strong>Category:</strong> {doc.get('category', '').title()} 
+                <div style="margin-top: 10px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px;">
+                    {doc.get('content', 'No content available')}
+                </div>
             </div>
             """, unsafe_allow_html=True)
     
@@ -936,14 +957,38 @@ def render_knowledge_base():
             
             if st.form_submit_button("💾 Add to Memory", use_container_width=True):
                 if query and resolution:
+                    # POST request would go here
                     st.success("✅ Service memory added successfully!")
-                    st.info(f"**Query:** {query}\n**Agent:** {agent_name}\n**Rating:** {effectiveness}/5")
                 else:
                     st.error("❌ Please fill in query and resolution")
         
-        st.markdown('</div>', unsafe_allow_html=True)
+        # Display real service memory
+        st.markdown("#### 💾 Service Memory Entries")
+        with st.spinner("Loading service memory..."):
+            memories = get_service_memory()
+        
+        if not memories:
+            st.info("No service memory entries found.")
+            return
+            
+        for memory in memories:
+            st.markdown(f"""
+            <div class="ticket-card">
+            <h4>Customer Query</h4>
+            <p>{memory.get('query', 'No query available')}</p>
+
+            <h4>Resolution</h4>
+            <p>{memory.get('resolution', 'No resolution available')}</p>
+
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+            <span class="info-badge">👤 {memory.get('agent_name', 'Unknown agent')}</span>
+            <span class="info-badge">📂 {memory.get('category', '').title()}</span>
+            </div>
+            </div>
+            """, unsafe_allow_html=True)
     
     with tab3:
+        # This tab remains similar but would need API integration for search
         st.markdown("#### 🔍 Search Knowledge Base")
         st.markdown("---")
         
@@ -951,38 +996,7 @@ def render_knowledge_base():
         search_category = st.selectbox("Filter by Category", ["All", "billing", "technical", "internet", "account", "general"])
         
         if st.button("🔍 Search", use_container_width=True):
-            if search_query:
-                st.success(f"🔍 Searching for: '{search_query}'")
-                
-                # Mock search results
-                mock_results = [
-                    {
-                        "title": "Network Connectivity Issues",
-                        "category": "technical",
-                        "snippet": "Common solutions for network connectivity problems...",
-                        "relevance": 0.95
-                    },
-                    {
-                        "title": "Billing Dispute Resolution",
-                        "category": "billing", 
-                        "snippet": "Step-by-step process for handling billing disputes...",
-                        "relevance": 0.87
-                    }
-                ]
-                
-                for result in mock_results:
-                    st.markdown(f"""
-                    <div class="ticket-card">
-                        <h4>{result['title']}</h4>
-                        <p><strong>Category:</strong> {result['category'].title()} | <strong>Relevance:</strong> {result['relevance']:.0%}</p>
-                        <p>{result['snippet']}</p>
-                        <button class="nav-button">View Full Article</button>
-                    </div>
-                    """, unsafe_allow_html=True)
-            else:
-                st.warning("⚠️ Please enter a search query")
-        
-        st.markdown('</div>', unsafe_allow_html=True)
+            st.info("Search functionality would call API endpoints here")
 
 #Location Analytics
 
@@ -994,19 +1008,6 @@ def render_ticket_map(API_BASE_URL: str):
     """
 
     st.title("📍 Customer Service Tickets Map")
-
-    @st.cache_data
-    def get_tickets():
-        try:
-            response = requests.get(f"{API_BASE_URL}/tickets")
-            if response.status_code == 200:
-                return response.json()
-            else:
-                st.error(f"API Error: {response.status_code}")
-                return []
-        except Exception as e:
-            st.error(f"Error fetching tickets: {e}")
-            return []
 
     tickets = get_tickets()
 
@@ -1031,7 +1032,7 @@ def render_ticket_map(API_BASE_URL: str):
         return
 
     df = pd.DataFrame(records)
-
+    print(len(df))
     st.sidebar.markdown("___")
     st.sidebar.header("🔍 Filters")
     
@@ -1138,6 +1139,9 @@ def render_ticket_map(API_BASE_URL: str):
 
     with st.expander("📄 See Filtered Data"):
         st.dataframe(filtered_df)
+        if st.sidebar.button("🔄 Refresh Tickets"):
+            st.cache_data.clear()
+            st.rerun()
 
 # Main application
 def main():

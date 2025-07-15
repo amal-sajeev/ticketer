@@ -190,6 +190,21 @@ class TicketNote(BaseModel):
 class TicketAssignment(BaseModel):
     agent_name: str
 
+class DocumentationResponse(BaseModel):
+    id: str
+    title: str
+    content: str
+    category: str
+    created_at: str
+
+class ServiceMemoryResponse(BaseModel):
+    id: str
+    query: str
+    resolution: str
+    category: str
+    agent_name: str
+    created_at: str
+
 # Global variables
 app = FastAPI(title="AI Customer Service Ticket System")
 db_client = None
@@ -805,7 +820,7 @@ async def get_tickets(
     status: Optional[TicketStatus] = None,
     category: Optional[TicketCategory] = None,
     priority: Optional[Priority] = None,
-    limit: int = 50,
+    limit: Optional[int] = None,
     skip: int = 0,
     db = Depends(get_db)
 ):
@@ -820,7 +835,9 @@ async def get_tickets(
             filter_query["priority"] = priority.value
         
         def get_tickets_sync():
-            cursor = db.tickets.find(filter_query).sort("created_at", -1).skip(skip).limit(limit)
+            cursor = db.tickets.find(filter_query).sort("created_at", -1).skip(skip)
+            if limit is not None:
+                cursor = cursor.limit(limit)
             return [convert_db_ticket(t) for t in cursor]
         
         loop = asyncio.get_event_loop()
@@ -1116,6 +1133,110 @@ async def add_service_memory(
         logger.error(f"Error adding service memory: {e}")
         raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
 
+@app.get("/knowledge/documentation", response_model=List[DocumentationResponse])
+async def get_documentation(
+    category: Optional[TicketCategory] = None,
+    limit: int = 50,
+    offset: int = 0,
+    qdrant = Depends(get_qdrant)
+):
+    """Retrieve documentation entries from knowledge base"""
+    try:
+        # Create filter condition if category is provided
+        filter_condition = None
+        if category:
+            filter_condition = Filter(
+                must=[
+                    FieldCondition(
+                        key="category",
+                        match=MatchValue(value=category.value)
+                    )
+                ]
+            )
+        # Create a zero vector for full retrieval
+        zero_vector = [0.0] * 384
+        
+        # Retrieve points from Qdrant
+        results = qdrant.search(
+            collection_name="documentation",
+            query_vector=zero_vector,
+            query_filter=filter_condition,
+            limit=limit,
+            offset=offset,
+            with_payload=True,
+            with_vectors=False
+        )
+        
+        # Format response
+        entries = []
+        for point in results:
+            payload = point.payload
+            entries.append({
+                "id": point.id,
+                "title": payload.get("title", ""),
+                "content": payload.get("content", ""),
+                "category": payload.get("category", ""),
+                "created_at": payload.get("created_at", "")
+            })
+        
+        return entries
+        
+    except Exception as e:
+        logger.error(f"Error retrieving documentation: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+@app.get("/knowledge/service-memory", response_model=List[ServiceMemoryResponse])
+async def get_service_memory(
+    category: Optional[TicketCategory] = None,
+    limit: int = 50,
+    offset: int = 0,
+    qdrant = Depends(get_qdrant)
+):
+    """Retrieve service memory entries"""
+    try:
+        # Create filter condition if category is provided
+        filter_condition = None
+        if category:
+            filter_condition = Filter(
+                must=[
+                    FieldCondition(
+                        key="category",
+                        match=MatchValue(value=category.value)
+                    )
+                ]
+            )
+        # Create a zero vector for full retrieval
+        zero_vector = [0.0] * 384
+        
+        # Retrieve points from Qdrant
+        results = qdrant.search(
+            collection_name="service_memory",
+            query_vector=zero_vector,
+            query_filter=filter_condition,
+            limit=limit,
+            offset=offset,
+            with_payload=True,
+            with_vectors=False
+        )
+        
+        # Format response
+        entries = []
+        for point in results:
+            payload = point.payload
+            entries.append({
+                "id": point.id,
+                "query": payload.get("query", ""),
+                "resolution": payload.get("resolution", ""),
+                "category": payload.get("category", ""),
+                "agent_name": payload.get("agent_name", ""),
+                "created_at": payload.get("created_at", "")
+            })
+        
+        return entries
+        
+    except Exception as e:
+        logger.error(f"Error retrieving service memory: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.get("/analytics", response_model=AnalyticsResponse)
 async def get_analytics(

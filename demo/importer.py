@@ -85,36 +85,1005 @@ url = "http://localhost:8000/tickets"
 
 payload = [
   {"title": "Internet outage in Al-Olaya", "description": "No internet connection since morning. Router lights are red. Working from home is impossible!", "customer_email": "ahmed@example.com", "customer_name": "Ahmed Al-Saud", "location": {  "latitude": 24.7136,   "longitude": 46.6753}},
-  {"title": "Unexpected roaming charges", "description": "Charged 350 SAR for UAE roaming despite activating package. Was only there for 3 days!", "customer_email": "sara@example.com", "customer_name": "Sara Mohammed", "location": {  "latitude": 21.5433,   "longitude": 39.1728}},
-  {"title": "5G not working in Dammam", "description": "Phone shows 5G but speed is like 3G. Tried different locations in city center. iPhone 14 Pro.", "customer_email": "khalid@example.com", "customer_name": "Khalid Hassan", "location": {  "latitude": 26.4207,   "longitude": 50.0888}},
-  {"title": "Can't pay bill online", "description": "Payment fails on STC Pay app with 'processor error'. Tried 3 cards that work elsewhere.", "customer_email": "fatima@example.com", "customer_name": "Fatima Abdullah"},
-  {"title": "TV package missing channels", "description": "Sports package channels 120-125 not showing after renewal. Restarted box twice.", "customer_email": "omar@example.com", "customer_name": "Omar Ibrahim"},
-  {"title": "Business account transfer", "description": "Need to transfer 5 numbers from father's account to my business. Documents ready.", "customer_email": "nora@example.com", "customer_name": "Nora Al-Faisal", "location": {  "latitude": 24.7743,   "longitude": 46.7382}},
-  {"title": "Fiber installation delay", "description": "Appointment missed 3 times! Promised 48h installation still not done after 2 weeks.", "customer_email": "faisal@example.com", "customer_name": "Faisal Rashid", "location": {  "latitude": 24.5247,   "longitude": 39.5692}},
-  {"title": "International calls blocked", "description": "Suddenly can't call Egypt numbers. Account shows 'restricted'. No notification.", "customer_email": "layla@example.com", "customer_name": "Layla Mahmoud"},
-  {"title": "Data breach concern", "description": "Received SMS with OTP I didn't request. Worried about account security.", "customer_email": "majid@example.com", "customer_name": "Majid Sultan"},
-  {"title": "Corporate plan upgrade", "description": "Need to upgrade 50-employee plan to unlimited 5G. Requesting manager approval.", "customer_email": "salim@example.com", "customer_name": "Salim Corporation"},
-
-  {"title": "Fiber outage in Al-Malaz", "description": "No internet since yesterday evening. ONT shows red LOS light. Neighbors also affected.", "customer_email": "majid.alsaud@example.com", "customer_name": "Majid Al-Saud", "location": {"latitude": 24.6408, "longitude": 46.7728}},
-  {"title": "International roaming not working in Turkey", "description": "Paid for Europe package but only getting 'Emergency Calls Only'. Need urgent fix for business trip!", "customer_email": "business.traveler@example.com", "customer_name": "Abdullah Trading Co", "location": {"latitude": 24.7136, "longitude": 46.6753}},
-  {"title": "STC TV app login failure", "description": "Error 'Account not recognized' on new Smart TV. Works on phone but not Samsung TV.", "customer_email": "entertainment@example.com", "customer_name": "Family Al-Rashid"},
-  {"title": "Unauthorized SIM swap", "description": "Received SMS about new SIM activation. Didn't request this! Can't access my number now.", "customer_email": "security.concern@example.com", "customer_name": "Lina Ahmed", "location": {"latitude": 21.5433, "longitude": 39.1728}},
-  {"title": "Business plan upgrade request", "description": "Need to move 35 employees from Consumer Pro to Business Unlimited. Require priority support.", "customer_email": "it.director@example.com", "customer_name": "Najd Hospital"},
-  {"title": "5G speed under 10Mbps", "description": "In King Abdullah Financial District with full bars. Speedtest shows worse than 4G performance.", "customer_email": "finance.pro@example.com", "customer_name": "Khalid Investors", "location": {"latitude": 24.7584, "longitude": 46.6424}},
-  {"title": "Duplicate bill for same period", "description": "Charged twice for January service. Reference # INV-78945 and INV-78946 show identical items.", "customer_email": "accounting@example.com", "customer_name": "Al-Marah Trading"},
-  {"title": "WiFi calling drops after 2 minutes", "description": "Calls disconnect in basement office despite strong WiFi. Critical for business continuity.", "customer_email": "facility.manager@example.com", "customer_name": "Al-Nakheel Mall"},
-  {"title": "Prepaid balance expired early", "description": "100 SAR balance disappeared after 15 days despite 30-day policy. Receipt # STC-2024-45612.", "customer_email": "student@example.com", "customer_name": "Mohammed Student"},
-  {"title": "Fiber installation delay", "description": "Third missed appointment! Promised installation on 15/03 still not completed. Project deadline impacted.", "customer_email": "architect@example.com", "customer_name": "Design Studio", "location": {"latitude": 26.4207, "longitude": 50.0888}},
-  {"title": "Corporate account hacking attempt", "description": "Multiple failed logins from foreign IP. Need immediate account freeze and investigation.", "customer_email": "cyber@example.com", "customer_name": "Bank Security Team"},
-  {"title": "Gaming package throttling", "description": "After 50GB, speed drops to 1Mbps despite 'unlimited' claim. Ping becomes unplayable (>300ms).", "customer_email": "esports@example.com", "customer_name": "Saudi Gamers Club"},
-  {"title": "STC Pay payment failure", "description": "Error 'Processor Declined' when paying 2,450 SAR bill. Card works elsewhere. Urgent to avoid suspension.", "customer_email": "urgent.payment@example.com", "customer_name": "Restaurant Chain"},
-  {"title": "TV channel missing after renewal", "description": "BeIN Sports 1-12 disappeared after auto-renewal. Package shows active but channels not available.", "customer_email": "sports.fan@example.com", "customer_name": "Faisal Sports Bar"},
-  {"title": "Business SMS rejection", "description": "Approved marketing messages now failing with 'Content Restricted'. Campaign is time-sensitive.", "customer_email": "marketing@example.com", "customer_name": "E-Commerce Startup"},
-  {"title": "Frequent call drops in Dahran", "description": "Every call ends after 3-5 minutes in Al-Khobar area. Multiple devices affected.", "customer_email": "oil.engineer@example.com", "customer_name": "Aramco Contractor", "location": {"latitude": 26.2361, "longitude": 50.0393}},
-  {"title": "VAT exemption not applied", "description": "Government account still charged 15% VAT despite valid exemption certificate on file.", "customer_email": "gov.account@example.com", "customer_name": "Ministry of Education"},
-  {"title": "Router admin access blocked", "description": "Can't access 192.168.1.1 after firmware update. Need to configure port forwarding for security cameras.", "customer_email": "smart.home@example.com", "customer_name": "Villa Owner"},
-  {"title": "Hajj package auto-renewal", "description": "Unwanted 500 SAR charge for Hajj package renewal. Was supposed to be one-time purchase.", "customer_email": "pilgrim@example.com", "customer_name": "Hajj Group 1445"},
-  {"title": "Employee SIM abuse", "description": "Company number used for 8,000 SAR international calls after employee termination.", "customer_email": "hr.director@example.com", "customer_name": "Construction Company"
+  {
+    "title": "Poor signal in Jeddah Corniche",
+    "description": "Can't make calls near the waterfront. Signal drops constantly during business meetings.",
+    "customer_email": "leila@domain.sa",
+    "customer_name": "Leila Hassan",
+    "location": {
+      "latitude": 21.5925,
+      "longitude": 39.1767
+    }
+  },
+  {
+    "title": "Billing discrepancy",
+    "description": "Charged for international calls I never made. Need detailed call logs.",
+    "customer_email": "khalid@mail.sa",
+    "customer_name": "Khalid Abadi",
+    "location": {
+      "latitude": 24.4686,
+      "longitude": 39.6142
+    }
+  },
+  {
+    "title": "TV channel package missing",
+    "description": "Sports channels disappeared after system update. Missing crucial matches!",
+    "customer_email": "faisal@provider.sa",
+    "customer_name": "Faisal Rashed",
+    "location": {
+      "latitude": 26.4202,
+      "longitude": 50.0888
+    }
+  },
+  {
+    "title": "Slow 5G in Riyadh Center",
+    "description": "5G speed slower than my old 4G. Speedtest shows 12Mbps near Kingdom Tower.",
+    "customer_email": "nora@company.sa",
+    "customer_name": "Nora Al-Faisal",
+    "location": {
+      "latitude": 24.7113,
+      "longitude": 46.6750
+    }
+  },
+  {
+    "title": "Voicemail not working",
+    "description": "Callers can't leave messages. Get 'mailbox full' error when it's empty.",
+    "customer_email": "yousef@contact.sa",
+    "customer_name": "Yousef Omar",
+    "location": {
+      "latitude": 21.5433,
+      "longitude": 39.1728
+    }
+  },
+  {
+    "title": "Fiber installation delay",
+    "description": "Appointment missed 3 times. Technician never arrives. Urgent for home office.",
+    "customer_email": "sara@user.sa",
+    "customer_name": "Sara Khaled",
+    "location": {
+      "latitude": 24.8224,
+      "longitude": 46.6390
+    }
+  },
+  {
+    "title": "International roaming failure",
+    "description": "No service in Dubai despite premium package. Incurred massive charges.",
+    "customer_email": "tariq@client.sa",
+    "customer_name": "Tariq Mansour",
+    "location": {
+      "latitude": 24.7262,
+      "longitude": 46.6644
+    }
+  },
+  {
+    "title": "WiFi disconnects repeatedly",
+    "description": "Connection drops every 15 minutes. Router restart only fixes temporarily.",
+    "customer_email": "lama@customer.sa",
+    "customer_name": "Lama Abdullah",
+    "location": {
+      "latitude": 21.4239,
+      "longitude": 39.8255
+    }
+  },
+  {
+    "title": "SMS delivery failure",
+    "description": "Bank OTPs not received. Confirmed bank is sending but nothing arrives.",
+    "customer_email": "majid@inbox.sa",
+    "customer_name": "Majid Saleh",
+    "location": {
+      "latitude": 24.4667,
+      "longitude": 39.6000
+    }
+  },
+  {
+    "title": "💡 My SIM card thinks it's a falcon",
+    "description": "Every time I try to call, it flies away from my phone. Possibly identifies as migratory bird?",
+    "customer_email": "badr@joke.sa",
+    "customer_name": "Badr Al-Johani",
+    "location": {
+      "latitude": 24.6951,
+      "longitude": 46.7298
+    }
+  },
+  {
+    "title": "💡 Phone only works during iftar",
+    "description": "Perfect signal at sunset but dead otherwise. Ramadan miracle or tech glitch?",
+    "customer_email": "omar@funny.sa",
+    "customer_name": "Omar Zahrani",
+    "location": {
+      "latitude": 21.3891,
+      "longitude": 39.8579
+    }
+  },
+  {
+    "title": "💡 My router brews coffee",
+    "description": "Started dispensing arabica instead of WiFi. Good coffee but terrible bandwidth.",
+    "customer_email": "nada@silly.sa",
+    "customer_name": "Nada Al-Rajhi",
+    "location": {
+      "latitude": 24.6988,
+      "longitude": 46.7215
+    }
+  },
+  {
+    "title": "💡 5G turned cat into hologram",
+    "description": "Fluffy now projects 3D images around house. Cute but scaring the kids.",
+    "customer_email": "hassan@lol.sa",
+    "customer_name": "Hassan Qasim",
+    "location": {
+      "latitude": 24.6255,
+      "longitude": 46.7076
+    }
+  },
+  {
+    "title": "💡 Phone autocorrects to camel jokes",
+    "description": "'Meeting rescheduled' becomes 'camel rescheduled'. Important texts sound like desert humor.",
+    "customer_email": "fatima@haha.sa",
+    "customer_name": "Fatima Al-Harbi",
+    "location": {
+      "latitude": 24.8011,
+      "longitude": 46.6383
+    }
+  },
+  {
+    "title": "💡 Bill paid in sand dollars",
+    "description": "Tried to settle invoice with beach sand. Now router only streams desert documentaries.",
+    "customer_email": "khalid@witty.sa",
+    "customer_name": "Khalid Dossary",
+    "location": {
+      "latitude": 26.3021,
+      "longitude": 50.1520
+    }
+  },
+  {
+    "title": "💡 SIM card sings nasheeds",
+    "description": "Instead of dial tone, hear religious songs. Beautiful but can't make calls.",
+    "customer_email": "salma@music.sa",
+    "customer_name": "Salma Al-Ghamdi",
+    "location": {
+      "latitude": 21.6245,
+      "longitude": 39.2067
+    }
+  },
+  {
+    "title": "💡 Phone thinks it's a date palm",
+    "description": "Keeps asking for fertilizer notifications. Requesting tech support with agricultural degree.",
+    "customer_email": "rayan@palmtree.sa",
+    "customer_name": "Rayan Al-Mutairi",
+    "location": {
+      "latitude": 24.4738,
+      "longitude": 39.6161
+    }
+  },
+  {
+    "title": "💡 Mobile data only works for memes",
+    "description": "Can stream funny cat videos 4K, but emails won't load. Priorities messed up.",
+    "customer_email": "zain@meme.sa",
+    "customer_name": "Zain Bashir",
+    "location": {
+      "latitude": 24.7600,
+      "longitude": 46.6600
+    }
+  },
+  {
+    "title": "💡 Phone auto-dials the Crown Prince",
+    "description": "Accidentally called MBS 17 times while ordering kabsa. Very embarrassing.",
+    "customer_email": "fahad@oops.sa",
+    "customer_name": "Fahad Al-Shehri",
+    "location": {
+      "latitude": 24.7111,
+      "longitude": 46.6742
+    }
+  },
+  {
+    "title": "💡 Router emits oud fragrance",
+    "description": "Smells like a music festival but no internet. Scented troubleshooting needed.",
+    "customer_email": "layla@smell.sa",
+    "customer_name": "Layla Al-Qahtani",
+    "location": {
+      "latitude": 21.4932,
+      "longitude": 39.1937
+    }
+  },
+  {
+    "title": "Can't activate eSIM",
+    "description": "QR code scan fails repeatedly. Need manual activation support.",
+    "customer_email": "amir@business.sa",
+    "customer_name": "Amir Hassan",
+    "location": {
+      "latitude": 24.7883,
+      "longitude": 46.6496
+    }
+  },
+  {
+    "title": "Landline static noise",
+    "description": "Constant buzzing on home phone. Can't hear callers properly.",
+    "customer_email": "haya@residence.sa",
+    "customer_name": "Haya Mohammed",
+    "location": {
+      "latitude": 24.7288,
+      "longitude": 46.6621
+    }
+  },
+  {
+    "title": "TV remote unresponsive",
+    "description": "New IR remote won't pair with set-top box. Batteries replaced.",
+    "customer_email": "saad@techhelp.sa",
+    "customer_name": "Saad Al-Zahrani",
+    "location": {
+      "latitude": 26.3516,
+      "longitude": 50.1974
+    }
+  },
+  {
+    "title": "Duplicate SMS received",
+    "description": "Get every text message 5-7 times. Flooding my inbox.",
+    "customer_email": "noura@mobile.sa",
+    "customer_name": "Noura Fahad",
+    "location": {
+      "latitude": 24.7012,
+      "longitude": 46.6783
+    }
+  },
+  {
+    "title": "Email not syncing on mobile",
+    "description": "@company.sa enterprise emails not updating on phone. Works on desktop.",
+    "customer_email": "waleed@corp.sa",
+    "customer_name": "Waleed Akram",
+    "location": {
+      "latitude": 24.7225,
+      "longitude": 46.6873
+    }
+  },
+  {
+    "title": "Frequent call drops in Dammam",
+    "description": "Calls disconnect after 2 minutes near Corniche. Consistent issue.",
+    "customer_email": "ibrahim@dhahran.sa",
+    "customer_name": "Ibrahim Saleem",
+    "location": {
+      "latitude": 26.4362,
+      "longitude": 50.1033
+    }
+  },
+  {
+    "title": "Wrong name on bill",
+    "description": "Account shows 'Invisible Man' instead of my name. Identity crisis!",
+    "customer_email": "kareem@billing.sa",
+    "customer_name": "Kareem Jassim",
+    "location": {
+      "latitude": 24.4922,
+      "longitude": 39.7062
+    }
+  },
+  {
+    "title": "Mobile hotspot limit error",
+    "description": "Shows 'data exhausted' when 80% remains. Can't tether laptop.",
+    "customer_email": "dalal@student.sa",
+    "customer_name": "Dalal Ahmed",
+    "location": {
+      "latitude": 24.8137,
+      "longitude": 46.6524
+    }
+  },
+  {
+    "title": "VoIP quality issues",
+    "description": "Conference calls echo terribly. Participants sound underwater.",
+    "customer_email": "yara@office.sa",
+    "customer_name": "Yara Tawfiq",
+    "location": {
+      "latitude": 24.6995,
+      "longitude": 46.6851
+    }
+  },
+  {
+    "title": "Security alert false positives",
+    "description": "Get 'suspicious activity' texts every hour. No unusual logins.",
+    "customer_email": "faisal@secure.sa",
+    "customer_name": "Faisal Nasser",
+    "location": {
+      "latitude": 24.7701,
+      "longitude": 46.6627
+    }
+  },
+  {
+    "title": "Can't unsubscribe from promotions",
+    "description": "Opted out 9 times but still get marketing SMS. Violating preferences.",
+    "customer_email": "maha@stop.sa",
+    "customer_name": "Maha Khalid",
+    "location": {
+      "latitude": 21.4211,
+      "longitude": 39.8262
+    }
+  },
+  {
+    "title": "Fiber cable exposed",
+    "description": "Construction damaged line near my villa. Open wire hazard.",
+    "customer_email": "rashid@villa.sa",
+    "customer_name": "Rashid Al-Mansour",
+    "location": {
+      "latitude": 24.8019,
+      "longitude": 46.6417
+    }
+  },
+  {
+    "title": "International SMS blocked",
+    "description": "Can't text UAE numbers. Error: 'destination restricted'.",
+    "customer_email": "saeed@family.sa",
+    "customer_name": "Saeed Omar",
+    "location": {
+      "latitude": 26.2934,
+      "longitude": 50.1980
+    }
+  },
+  {
+    "title": "Set-top box freezing",
+    "description": "TV freezes during prime time shows. Requires daily reboot.",
+    "customer_email": "lina@entertain.sa",
+    "customer_name": "Lina Abdul",
+    "location": {
+      "latitude": 24.7128,
+      "longitude": 46.6719
+    }
+  },
+  {
+    "title": "App login failure",
+    "description": "'MyAccount' app rejects valid credentials. Web login works fine.",
+    "customer_email": "turkia@appuser.sa",
+    "customer_name": "Turkia Ali",
+    "location": {
+      "latitude": 21.5985,
+      "longitude": 39.2103
+    }
+  },
+  {
+    "title": "Data usage spike alert",
+    "description": "Received 95% usage warning but barely used phone. Suspect error.",
+    "customer_email": "mohsen@data.sa",
+    "customer_name": "Mohsen Kamal",
+    "location": {
+      "latitude": 24.4715,
+      "longitude": 39.6119
+    }
+  },
+  {
+    "title": "Port request delayed",
+    "description": "Number porting stuck 'in process' for 12 days. Can't receive calls.",
+    "customer_email": "naser@switch.sa",
+    "customer_name": "Naser Idris",
+    "location": {
+      "latitude": 24.8200,
+      "longitude": 46.6400
+    }
+  },
+  {
+    "title": "WiFi dead zones in home",
+    "description": "No signal in kitchen and bedrooms. House layout issue?",
+    "customer_email": "salah@home.sa",
+    "customer_name": "Salah Rajab",
+    "location": {
+      "latitude": 24.7023,
+      "longitude": 46.6921
+    }
+  },
+  {
+    "title": "Unrecognized device on network",
+    "description": "Unknown device named 'Ghost' connected to home WiFi. Security concern.",
+    "customer_email": "farah@securehome.sa",
+    "customer_name": "Farah Musa",
+    "location": {
+      "latitude": 24.7900,
+      "longitude": 46.6500
+    }
+  },
+  {
+    "title": "Premium channels pixelated",
+    "description": "Paid movie channels look like 8-bit video games. Quality unacceptable.",
+    "customer_email": "basim@tvsub.sa",
+    "customer_name": "Basim Karim",
+    "location": {
+      "latitude": 26.3315,
+      "longitude": 50.1820
+    }
+  },
+  {
+    "title": "Auto-payment failure",
+    "description": "Credit card charge declined despite valid details. Service suspension threat.",
+    "customer_email": "jamal@autopay.sa",
+    "customer_name": "Jamal Fahd",
+    "location": {
+      "latitude": 24.7456,
+      "longitude": 46.6632
+    }
+  },
+  {
+    "title": "Replacement SIM not activated",
+    "description": "Lost phone got new SIM, still shows 'no service' after 48 hours.",
+    "customer_email": "arwa@newsim.sa",
+    "customer_name": "Arwa Salem",
+    "location": {
+      "latitude": 21.4858,
+      "longitude": 39.1925
+    }
+  },
+  {
+    "title": "Parental control bypassed",
+    "description": "Kids accessed blocked gaming sites. Filters not working.",
+    "customer_email": "hamad@dad.sa",
+    "customer_name": "Hamad Zayed",
+    "location": {
+      "latitude": 24.7150,
+      "longitude": 46.6720
+    }
+  },
+  {
+    "title": "No 4G in Abha mountains",
+    "description": "Only edge network in tourist area. Coverage map showed full bars.",
+    "customer_email": "khalil@travel.sa",
+    "customer_name": "Khalil Asiri",
+    "location": {
+      "latitude": 18.2305,
+      "longitude": 42.5001
+    }
+  },
+  {
+    "title": "Modem overheating",
+    "description": "Router too hot to touch. Smells like burning plastic. Fire hazard?",
+    "customer_email": "sirine@device.sa",
+    "customer_name": "Sirine Malik",
+    "location": {
+      "latitude": 24.7089,
+      "longitude": 46.6687
+    }
+  },
+  {
+    "title": "Call forwarding loops",
+    "description": "Forwarded calls bounce between numbers endlessly. Can't answer any.",
+    "customer_email": "muneer@forward.sa",
+    "customer_name": "Muneer Adnan",
+    "location": {
+      "latitude": 24.6982,
+      "longitude": 46.7203
+    }
+  },
+  {
+    "title": "Late payment fee dispute",
+    "description": "Charged late fee despite paying on due date. Need waiver.",
+    "customer_email": "hussain@payissue.sa",
+    "customer_name": "Hussain Qureshi",
+    "location": {
+      "latitude": 24.4700,
+      "longitude": 39.6100
+    }
+  },
+  {
+    "title": "Business landline down",
+    "description": "Office phone dead for 2 days. Affecting customer support.",
+    "customer_email": "zeina@business.sa",
+    "customer_name": "Zeina Akbar",
+    "location": {
+      "latitude": 24.7200,
+      "longitude": 46.6900
+    }
+  },
+  {
+    "title": "Fiber optic cable damage in Al-Nakheel",
+    "description": "Construction work severed underground fiber line. Entire neighborhood offline.",
+    "customer_email": "khalid_almansour@business.sa",
+    "customer_name": "Khalid Al-Mansour",
+    "location": {
+      "latitude": 24.7804,
+      "longitude": 46.6972
+    }
+  },
+  {
+    "title": "Persistent packet loss in King Abdullah Financial District",
+    "description": "20-30% packet loss during business hours affecting VoIP systems.",
+    "customer_email": "sara_alghamdi@finance.sa",
+    "customer_name": "Sara Al-Ghamdi",
+    "location": {
+      "latitude": 24.7602,
+      "longitude": 46.6428
+    }
+  },
+  {
+    "title": "Billing system double-charging for international roaming",
+    "description": "Duplicate charges for UAE usage appear on November invoice. Transaction IDs: INV-78945, INV-78946",
+    "customer_email": "omar_nasser@corporate.sa",
+    "customer_name": "Omar Nasser",
+    "location": {
+      "latitude": 24.7136,
+      "longitude": 46.6753
+    }
+  },
+  {
+    "title": "5G tower malfunction in Dhahran",
+    "description": "Sector 3 offline causing coverage gaps in residential zone 7.",
+    "customer_email": "fahad_khouri@dhahran.sa",
+    "customer_name": "Fahad Khouri",
+    "location": {
+      "latitude": 26.2915,
+      "longitude": 50.1583
+    }
+  },
+  {
+    "title": "Enterprise VPN connectivity failure",
+    "description": "Unable to establish secure connection to corporate network since system update.",
+    "customer_email": "itadmin@alrajhi-group.sa",
+    "customer_name": "Majid Al-Rajhi",
+    "location": {
+      "latitude": 24.6987,
+      "longitude": 46.7219
+    }
+  },
+  {
+    "title": "DSLAM equipment overheating in Jeddah Central",
+    "description": "Temperature alerts at exchange building JB-07. Requires urgent maintenance.",
+    "customer_email": "tech_officer@jeddahmunicipal.sa",
+    "customer_name": "Yousef Hassan",
+    "location": {
+      "latitude": 21.5433,
+      "longitude": 39.1728
+    }
+  },
+  {
+    "title": "SMS gateway failure for banking alerts",
+    "description": "Financial institutions report undelivered transaction notifications.",
+    "customer_email": "nabil.ahmed@ncb.sa",
+    "customer_name": "Nabil Ahmed",
+    "location": {
+      "latitude": 24.7105,
+      "longitude": 46.6732
+    }
+  },
+  {
+    "title": "Fiber backbone outage between Riyadh and Qassim",
+    "description": "Backhaul link down causing regional service degradation. Ticket: INC-789456",
+    "customer_email": "noc_engineer@telecom.sa",
+    "customer_name": "Abdullah Faisal",
+    "location": {
+      "latitude": 25.3548,
+      "longitude": 43.5543
+    }
+  },
+  {
+    "title": "Incorrect service activation in Al-Khobar",
+    "description": "Order #789123 for 500Mbps fiber installed as 100Mbps package.",
+    "customer_email": "salem@alghurairgroup.sa",
+    "customer_name": "Salem Al-Ghurair",
+    "location": {
+      "latitude": 26.2796,
+      "longitude": 50.2082
+    }
+  },
+  {
+    "title": "Mobile number porting failure",
+    "description": "Number 05XXXXXXXX stuck in transfer status for 72 hours.",
+    "customer_email": "layla.omar@customer.sa",
+    "customer_name": "Layla Omar",
+    "location": {
+      "latitude": 24.8224,
+      "longitude": 46.6390
+    }
+  },
+  {
+    "title": "VoLTE compatibility issues with Samsung S23 series",
+    "description": "Calls drop when switching between 5G and VoLTE. Multiple customers reporting.",
+    "customer_email": "mobile_support@telecom.sa",
+    "customer_name": "Technical Support Team",
+    "location": {
+      "latitude": 24.7136,
+      "longitude": 46.6753
+    }
+  },
+  {
+    "title": "DNS resolution failure in Eastern Province",
+    "description": "Recursive DNS servers not responding to queries. Affecting domain.sa sites.",
+    "customer_email": "admin@dammamhospital.sa",
+    "customer_name": "Dr. Ahmed Mansouri",
+    "location": {
+      "latitude": 26.3921,
+      "longitude": 50.0759
+    }
+  },
+  {
+    "title": "Faulty ONT in Al-Ahsa District",
+    "description": "Optical Network Terminal requires replacement. Flashing failure light.",
+    "customer_email": "mohammad@alhassavilla.sa",
+    "customer_name": "Mohammad Al-Hassan",
+    "location": {
+      "latitude": 25.3892,
+      "longitude": 49.5869
+    }
+  },
+  {
+    "title": "Underground conduit flooding in Jeddah",
+    "description": "Water infiltration in cable ducts after heavy rainfall. Potential short circuit risk.",
+    "customer_email": "facilities@jeddahport.sa",
+    "customer_name": "Khalid Al-Zahrani",
+    "location": {
+      "latitude": 21.5433,
+      "longitude": 39.1728
+    }
+  },
+  {
+    "title": "Corporate account management portal down",
+    "description": "Enterprise login portal returning 503 errors for 12+ hours.",
+    "customer_email": "it_director@aramco.sa",
+    "customer_name": "Faisal Al-Sheikh",
+    "location": {
+      "latitude": 24.7111,
+      "longitude": 46.6742
+    }
+  },
+  {
+    "title": "Microwave link interference in Tabuk",
+    "description": "New construction causing signal degradation on tower TBK-12.",
+    "customer_email": "network_ops@telecom.sa",
+    "customer_name": "Regional Operations",
+    "location": {
+      "latitude": 28.3835,
+      "longitude": 36.5662
+    }
+  },
+  {
+    "title": "Incorrect tax calculation on business accounts",
+    "description": "VAT applied at 15% instead of 5% for enterprise customers.",
+    "customer_email": "finance@alswalimgroup.sa",
+    "customer_name": "Noura Al-Swalim",
+    "location": {
+      "latitude": 24.7225,
+      "longitude": 46.6873
+    }
+  },
+  {
+    "title": "Fiber splice damage in Medina Central",
+    "description": "Vandalism incident affecting distribution node MD-45.",
+    "customer_email": "security@medinamunicipal.sa",
+    "customer_name": "Captain Rashid",
+    "location": {
+      "latitude": 24.4686,
+      "longitude": 39.6142
+    }
+  },
+  {
+    "title": "IoT SIM provisioning failure",
+    "description": "Bulk activation of 500+ industrial IoT SIMs stalled at pending status.",
+    "customer_email": "iot_manager@sec.sa",
+    "customer_name": "Amira Taha",
+    "location": {
+      "latitude": 24.7600,
+      "longitude": 46.6600
+    }
+  },
+  {
+    "title": "Peak-hour congestion in Riyadh Diplomatic Quarter",
+    "description": "Evening bandwidth drops below 10Mbps for premium business accounts.",
+    "customer_email": "embassy_tech@franceksa.sa",
+    "customer_name": "Pierre Dubois",
+    "location": {
+      "latitude": 24.6881,
+      "longitude": 46.6254
+    }
+  },
+  {
+    "title": "Faulty meter readings in Al-Kharj",
+    "description": "Usage data not transmitting from remote meters. Affecting billing cycle.",
+    "customer_email": "utilities@alkharjcity.sa",
+    "customer_name": "Municipal Services Dept",
+    "location": {
+      "latitude": 24.1554,
+      "longitude": 47.3346
+    }
+  },
+  {
+    "title": "Emergency services priority access failure",
+    "description": "Hospital communications not receiving network priority during congestion.",
+    "customer_email": "comms@kfsh.sa",
+    "customer_name": "Dr. Leila Abadi",
+    "location": {
+      "latitude": 24.6988,
+      "longitude": 46.7215
+    }
+  },
+  {
+    "title": "Fiber termination panel malfunction",
+    "description": "Central office rack F3-P8 offline in Dammam exchange.",
+    "customer_email": "co_engineer@telecom.sa",
+    "customer_name": "Hassan Qasim",
+    "location": {
+      "latitude": 26.4202,
+      "longitude": 50.0888
+    }
+  },
+  {
+    "title": "Directory assistance database corruption",
+    "description": "188 service returning incorrect business listings.",
+    "customer_email": "directory_support@telecom.sa",
+    "customer_name": "Service Operations",
+    "location": {
+      "latitude": 24.7136,
+      "longitude": 46.6753
+    }
+  },
+  {
+    "title": "LTE-A carrier aggregation failure",
+    "description": "Unable to bond channels in high-density areas. Speed capped at 100Mbps.",
+    "customer_email": "rf_engineer@telecom.sa",
+    "customer_name": "Ahmed Farhan",
+    "location": {
+      "latitude": 24.7113,
+      "longitude": 46.6750
+    }
+  },
+  {
+    "title": "Missed service level agreement - business fiber",
+    "description": "48-hour repair guarantee breached for enterprise account #789456.",
+    "customer_email": "contracts@alhabibgroup.sa",
+    "customer_name": "Kareem Al-Habib",
+    "location": {
+      "latitude": 24.7256,
+      "longitude": 46.6647
+    }
+  },
+  {
+    "title": "Generator fuel supply interruption - remote tower",
+    "description": "Tower ABH-08 running on backup batteries due to fuel delivery delay.",
+    "customer_email": "facilities@towerco.sa",
+    "customer_name": "Tower Maintenance",
+    "location": {
+      "latitude": 18.2305,
+      "longitude": 42.5001
+    }
+  },
+  {
+    "title": "Fiber mislabeling during new development installation",
+    "description": "Cross-connected lines in Al-Faisaliah Gardens causing wrong premise activations.",
+    "customer_email": "project_mgr@emaar.sa",
+    "customer_name": "Abdul Rahman",
+    "location": {
+      "latitude": 24.7324,
+      "longitude": 46.6389
+    }
+  },
+  {
+    "title": "Call center IVR system outage",
+    "description": "Automated customer service menu non-responsive. Customers unable to reach support.",
+    "customer_email": "callcenter_mgr@telecom.sa",
+    "customer_name": "Maha Al-Sudairi",
+    "location": {
+      "latitude": 24.7136,
+      "longitude": 46.6753
+    }
+  },
+  {
+    "title": "Microwave alignment drift - Red Sea coastal stations",
+    "description": "Atmospheric conditions causing link instability between Jeddah and Yanbu.",
+    "customer_email": "transmission@telecom.sa",
+    "customer_name": "Transmission Dept",
+    "location": {
+      "latitude": 22.3125,
+      "longitude": 39.1028
+    }
+  },
+  {
+    "title": "Unauthorized SIM swap fraud",
+    "description": "Customer reports number ported without authorization. Account #7890123",
+    "customer_email": "fraud_department@telecom.sa",
+    "customer_name": "Security Division",
+    "location": {
+      "latitude": 24.7136,
+      "longitude": 46.6753
+    }
+  },
+  {
+    "title": "BTS cabinet break-in attempt in Najran",
+    "description": "Security breach at site NJR-14. Equipment tampering suspected.",
+    "customer_email": "site_security@telecom.sa",
+    "customer_name": "Field Operations",
+    "location": {
+      "latitude": 17.5656,
+      "longitude": 44.2289
+    }
+  },
+  {
+    "title": "Optical signal degradation on GCC backbone",
+    "description": "BER exceeding thresholds on segment Dammam-Riyadh. OTDR trace required.",
+    "customer_email": "backbone_ops@telecom.sa",
+    "customer_name": "Network Integrity",
+    "location": {
+      "latitude": 25.3548,
+      "longitude": 43.5543
+    }
+  },
+  {
+    "title": "In-building coverage system failure - Riyadh Metro",
+    "description": "Distributed antenna system offline at Qasr Al-Hokm station.",
+    "customer_email": "metro_comms@riyadh.sa",
+    "customer_name": "Metro Operations",
+    "location": {
+      "latitude": 24.6284,
+      "longitude": 46.7157
+    }
+  },
+  {
+    "title": "Payments processing delay",
+    "description": "Bank transfers not reflecting in accounts for 72+ hours. Transaction batch #789123",
+    "customer_email": "billing_system@telecom.sa",
+    "customer_name": "Billing Department",
+    "location": {
+      "latitude": 24.7136,
+      "longitude": 46.6753
+    }
+  },
+  {
+    "title": "GPON OLT card failure in Makkah",
+    "description": "Slot 3 Card 2 offline affecting 500+ subscribers.",
+    "customer_email": "gpon_tech@telecom.sa",
+    "customer_name": "Fiber Network Team",
+    "location": {
+      "latitude": 21.3891,
+      "longitude": 39.8579
+    }
+  },
+  {
+    "title": "Temporary number allocation error",
+    "description": "New activations assigning duplicate mobile numbers.",
+    "customer_email": "number_pool@telecom.sa",
+    "customer_name": "Number Administration",
+    "location": {
+      "latitude": 24.7136,
+      "longitude": 46.6753
+    }
+  },
+  {
+    "title": "Weather-related tower damage in Asir Province",
+    "description": "High winds toppled antenna arrays at site ASR-22.",
+    "customer_email": "disaster_recovery@telecom.sa",
+    "customer_name": "Emergency Response",
+    "location": {
+      "latitude": 18.2305,
+      "longitude": 42.5001
+    }
+  },
+  {
+    "title": "Voicemail system corruption",
+    "description": "Customers report deleted messages and greeting resets.",
+    "customer_email": "voice_services@telecom.sa",
+    "customer_name": "Voice Platform Team",
+    "location": {
+      "latitude": 24.7136,
+      "longitude": 46.6753
+    }
+  },
+  {
+    "title": "Spectrum interference in 2100MHz band - Eastern Region",
+    "description": "Unidentified signal causing dropped calls. Requires spectrum analysis.",
+    "customer_email": "rf_engineering@telecom.sa",
+    "customer_name": "Radio Frequency Dept",
+    "location": {
+      "latitude": 26.3021,
+      "longitude": 50.1520
+    }
+  },
+  {
+    "title": "Fiber splicing trailer accident on Hail Highway",
+    "description": "Service vehicle collision damaged critical splicing equipment.",
+    "customer_email": "field_ops@telecom.sa",
+    "customer_name": "Northern Region Ops",
+    "location": {
+      "latitude": 27.5114,
+      "longitude": 41.7208
+    }
+  },
+  {
+    "title": "Data center cooling system failure",
+    "description": "CRAC unit shutdown in Riyadh DC-3 causing temperature rise.",
+    "customer_email": "datacenter@telecom.sa",
+    "customer_name": "Facilities Management",
+    "location": {
+      "latitude": 24.7250,
+      "longitude": 46.6380
+    }
+  },
+  {
+    "title": "Billing system migration data corruption",
+    "description": "Legacy account data not transferring correctly to new platform.",
+    "customer_email": "billing_migration@telecom.sa",
+    "customer_name": "Billing Project Team",
+    "location": {
+      "latitude": 24.7136,
+      "longitude": 46.6753
+    }
+  },
+  {
+    "title": "Submarine cable maintenance notification failure",
+    "description": "Customers not receiving scheduled outage alerts for FALCON cable work.",
+    "customer_email": "customer_comms@telecom.sa",
+    "customer_name": "Customer Communications",
+    "location": {
+      "latitude": 26.3516,
+      "longitude": 50.1974
+    }
+  },
+  {
+    "title": "Industrial IoT latency spikes",
+    "description": "M2M communications experiencing 500ms+ latency in Yanbu Industrial City.",
+    "customer_email": "iot_operations@sabic.sa",
+    "customer_name": "SABIC Automation",
+    "location": {
+      "latitude": 23.9925,
+      "longitude": 38.2310
+    }
+  },
+  {
+    "title": "Authorization failure for business account changes",
+    "description": "Approved service modifications not implementing in provisioning system.",
+    "customer_email": "enterprise_support@telecom.sa",
+    "customer_name": "Business Services",
+    "location": {
+      "latitude": 24.7136,
+      "longitude": 46.6753
+    }
+  },
+  {
+    "title": "Copper pair degradation in historic Jeddah",
+    "description": "ADSL services failing due to corroded legacy cabling.",
+    "customer_email": "heritage@jeddah.sa",
+    "customer_name": "Historic District Office",
+    "location": {
+      "latitude": 21.4858,
+      "longitude": 39.1925
+    }
+  },
+  {
+    "title": "Network time protocol server desynchronization",
+    "description": "Device clocks drifting across network elements. Stratum 1 server unreachable.",
+    "customer_email": "network_timing@telecom.sa",
+    "customer_name": "Precision Timing",
+    "location": {
+      "latitude": 24.7136,
+      "longitude": 46.6753
+    }
+  },
+  {
+    "title": "Supply chain delay for Huawei equipment",
+    "description": "Critical 5G expansion components held at customs. Project delay imminent.",
+    "customer_email": "network_expansion@telecom.sa",
+    "customer_name": "Network Deployment",
+    "location": {
+      "latitude": 24.7136,
+      "longitude": 46.6753
+    }
+  },
+  {
+    "title": "Fiber optic sensor false alarms",
+    "description": "Security monitoring system triggering false positives along pipeline route.",
+    "customer_email": "pipeline_security@aramco.sa",
+    "customer_name": "Aramco Security",
+    "location": {
+      "latitude": 26.4362,
+      "longitude": 50.1033
+    }
+  },
+  {
+    "title": "Call detail record processing backlog",
+    "description": "CDR files not processing for billing. 12-hour delay accumulating.",
+    "customer_email": "mediation@billing.sa",
+    "customer_name": "Billing Systems",
+    "location": {
+      "latitude": 24.7136,
+      "longitude": 46.6753
+    }
+  },
+  {
+    "title": "Emergency alert system test failure",
+    "description": "National warning system not broadcasting to target areas during scheduled test.",
+    "email": "public_safety@mcit.sa",
+    "customer_name": "MCIT Emergency Comms",
+    "location": {
+      "latitude": 24.7136,
+      "longitude": 46.6753
+    }
   }
 ]
 
