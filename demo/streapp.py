@@ -9,6 +9,7 @@ from plotly.subplots import make_subplots
 import os
 import time
 import uuid
+import pydeck as pdk
 
 # Page configuration
 st.set_page_config(
@@ -391,7 +392,8 @@ def render_navigation():
         "📋 View Tickets": "view_tickets",
         "🔍 Ticket Details": "ticket_details",
         "📚 Knowledge Base": "knowledge_base",
-        "📊 Analytics": "analytics"
+        "📊 Analytics": "analytics",
+        "🗺️ Location analysis" : "location_analysis"
     }
     
     for label, page_key in nav_options.items():
@@ -982,6 +984,121 @@ def render_knowledge_base():
         
         st.markdown('</div>', unsafe_allow_html=True)
 
+#Location Analytics
+
+def render_ticket_map(API_BASE_URL: str):
+    """
+    Renders an interactive map page showing ticket locations.
+    Expects API_BASE_URL to be your FastAPI server root URL.
+    """
+
+    st.title("📍 Customer Service Tickets Map")
+
+    # -------------------------------
+    # Fetch ticket data
+    # -------------------------------
+    @st.cache_data
+    def get_tickets():
+        try:
+            response = requests.get(f"{API_BASE_URL}/tickets")
+            if response.status_code == 200:
+                return response.json()
+            else:
+                st.error(f"API Error: {response.status_code}")
+                return []
+        except Exception as e:
+            st.error(f"Error fetching tickets: {e}")
+            return []
+
+    tickets = get_tickets()
+
+    # -------------------------------
+    # Extract valid locations
+    # -------------------------------
+    locations = []
+
+    for t in tickets:
+        loc = t.get("location")
+        if loc and loc.get("latitude") is not None and loc.get("longitude") is not None:
+            locations.append({
+                "lat": loc["latitude"],
+                "lon": loc["longitude"],
+                "title": t.get("title"),
+                "status": t.get("status"),
+                "priority": t.get("priority"),
+                "category": t.get("category"),
+                "customer": t.get("customer_name")
+            })
+
+    if not locations:
+        st.info("No tickets with valid location data found.")
+        return
+
+    df = pd.DataFrame(locations)
+
+    # -------------------------------
+    # Sidebar filters
+    # -------------------------------
+    st.sidebar.header("🔍 Filters")
+
+    priorities = df["priority"].dropna().unique().tolist()
+    selected_priorities = st.sidebar.multiselect("Priority", priorities, default=priorities)
+
+    statuses = df["status"].dropna().unique().tolist()
+    selected_statuses = st.sidebar.multiselect("Status", statuses, default=statuses)
+
+    categories = df["category"].dropna().unique().tolist()
+    selected_categories = st.sidebar.multiselect("Category", categories, default=categories)
+
+    filtered_df = df[
+        df["priority"].isin(selected_priorities) &
+        df["status"].isin(selected_statuses) &
+        df["category"].isin(selected_categories)
+    ]
+
+    st.subheader(f"Showing {len(filtered_df)} tickets")
+
+    if filtered_df.empty:
+        st.warning("No tickets match the selected filters.")
+        return
+
+    # -------------------------------
+    # Scatterplot map
+    # -------------------------------
+    layer = pdk.Layer(
+        "ScatterplotLayer",
+        data=filtered_df,
+        get_position='[lon, lat]',
+        get_color='[200, 30, 0, 160]',
+        get_radius=5000,
+        pickable=True
+    )
+
+    view_state = pdk.ViewState(
+        longitude=filtered_df["lon"].mean(),
+        latitude=filtered_df["lat"].mean(),
+        zoom=4,
+        pitch=0,
+    )
+
+    r = pdk.Deck(
+        layers=[layer],
+        initial_view_state=view_state,
+        tooltip={
+            "html": "<b>{customer}</b><br/>"
+                    "Title: {title}<br/>"
+                    "Category: {category}<br/>"
+                    "Priority: {priority}<br/>"
+                    "Status: {status}",
+            "style": {"color": "white"}
+        }
+    )
+
+    st.pydeck_chart(r)
+
+    with st.expander("📄 See Filtered Data"):
+        st.dataframe(filtered_df)
+
 # Main application
 def main():
     render_header()
@@ -1002,6 +1119,8 @@ def main():
         render_analytics()
     elif page == 'knowledge_base':
         render_knowledge_base()
+    elif page == 'location_analysis':  # Changed from 'location_analytics'
+        render_ticket_map(API_BASE_URL)  # Also added the required API_BASE_URL parameter
     
     # Footer
     st.markdown("---")
