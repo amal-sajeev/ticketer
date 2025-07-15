@@ -86,6 +86,12 @@ st.markdown("""
         color: #1E90FF;
     }
 
+    .ticket-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 20px;
+    }
+
     .status-pending { border-left: 4px solid #fbbf24; }
     .status-in-progress { border-left: 4px solid #3b82f6; }
     .status-resolved { border-left: 4px solid #10b981; }
@@ -402,93 +408,66 @@ def render_dashboard():
     
     col1, col2, col3, col4 = st.columns(4)
 
-    with col1:
-        st.markdown(f"""
-        <div class="metric-card">
-            <div class="metric-flex">
-                <div class="metric-left">
-                    <span class="icon">🎫</span>
-                    <span class="title">Total Tickets</span>
-                </div>
-                <div class="metric-value">{analytics.get('total_tickets', 0)}</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with col2:
-        st.markdown(f"""
-        <div class="metric-card">
-            <div class="metric-flex">
-                <div class="metric-left">
-                    <span class="icon">🤖</span>
-                    <span class="title">AI Resolved</span>
-                </div>
-                <div class="metric-value">{analytics.get('resolved_by_ai', 0)}</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with col3:
-        st.markdown(f"""
-        <div class="metric-card">
-            <div class="metric-flex">
-                <div class="metric-left">
-                    <span class="icon">⚠️</span>
-                    <span class="title">Escalated</span>
-                </div>
-                <div class="metric-value">{analytics.get('escalated_to_human', 0)}</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with col4:
-        st.markdown(f"""
-        <div class="metric-card">
-            <div class="metric-flex">
-                <div class="metric-left">
-                    <span class="icon">⏱️</span>
-                    <span class="title">Avg Resolution</span>
-                </div>
-                <div class="metric-value">{analytics.get('avg_resolution_time', 0):.1f}h</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+    metrics = [
+        ("Total Tickets", analytics.get('total_tickets', 0), "🎫"),
+        ("AI Resolved", analytics.get('resolved_by_ai', 0), "🤖"),
+        ("Escalated", analytics.get('escalated_to_human', 0), "⚠️"),
+        ("Avg Resolution", f"{analytics.get('avg_resolution_time', 0):.1f}h", "⏱️")
+    ]
     
-    # Recent tickets
-    st.markdown("### 📋 Recent Tickets")
-    recent_tickets = get_tickets()[:5]  # Get 5 most recent
-    
-    for ticket in recent_tickets:
-        status_class = f"status-{ticket['status'].replace('_', '-')}"
-        priority_color = get_priority_color(ticket['priority'])
-        
-        st.markdown(f"""
-        <div class="ticket-card {status_class}">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h4>{ticket['title']}</h4>
-                    <p><strong>Customer:</strong> {ticket['customer_name']}</p>
-                    <div style="display: flex; gap: 15px; margin-top: 10px;">
-                        <span class="info-badge">📂 {ticket['category'].title()}</span>
-                        <span class="info-badge" style="background: {priority_color}20; color: {priority_color};">
-                            🔥 {ticket['priority'].title()}
-                        </span>
-                        <span class="info-badge">📅 {format_datetime(ticket['created_at'])}</span>
+    for i, (title, value, icon) in enumerate(metrics):
+        with [col1, col2, col3, col4][i]:
+
+            st.markdown(f"""
+            <div class="metric-card">
+                <div class="metric-flex">
+                    <div class="metric-left">
+                        <span class="icon" style="font-size: 2rem">{icon}</span>
+                        <span class="title" style="font-size: 1.5rem">{title}</span>
                     </div>
-                </div>
-                <div>
-                    <button class="nav-button" onclick="window.location.href='?ticket_id={ticket['id']}'">
-                        View Details
-                    </button>
+                    <div class="metric-value">{value}</div>
                 </div>
             </div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        if st.button(f"View Details", key=f"view_{ticket['id']}"):
-            st.session_state.selected_ticket_id = ticket['id']
-            st.session_state.page = 'ticket_details'
-            st.rerun()
+            """, unsafe_allow_html=True)
+    
+
+    # ----------- TICKET CARDS ----------
+    st.markdown("### 📋 Recent Tickets")
+
+    tickets = get_tickets()[:10]
+
+    # Dynamically set cards per row
+    CARDS_PER_ROW = 3
+    rows = [tickets[i:i + CARDS_PER_ROW] for i in range(0, len(tickets), CARDS_PER_ROW)]
+
+    for row in rows:
+        cols = st.columns(CARDS_PER_ROW)
+        for col, ticket in zip(cols, row):
+            with col:
+                priority_color = get_priority_color(ticket['priority'])
+                status_class = f"status-{ticket['status'].replace('_', '-')}"
+
+                with st.container():
+                    st.markdown(f"""
+                        <div class="ticket-card {status_class}">
+                            <h4>{ticket['title']}</h4>
+                            <p><strong>Customer:</strong> {ticket['customer_name']}</p>
+                            <div style="display: flex; flex-wrap: wrap; gap: 10px; margin: 10px 0;">
+                                <span class="info-badge">📂 {ticket['category'].title()}</span>
+                                <span class="info-badge" style="background: {priority_color}20; color: {priority_color};">
+                                    🔥 {ticket['priority'].title()}
+                                </span>
+                                <span class="info-badge">📅 {format_datetime(ticket['created_at'])}</span>
+                            </div>
+                    """, unsafe_allow_html=True)
+
+                    # Pure Streamlit working button
+                    if st.button("🔍 View Details", key=f"view_{ticket['id']}", use_container_width=True):
+                        st.session_state.selected_ticket_id = ticket['id']
+                        st.session_state.page = 'ticket_details'
+                        st.rerun()
+
+                    st.markdown("</div>", unsafe_allow_html=True)
 
 def render_create_ticket():
     """Render create ticket form"""
@@ -663,7 +642,7 @@ def render_ticket_details():
     col1, col2 = st.columns([2, 1])
     
     with col1:
-        st.markdown('<div class="form-container">', unsafe_allow_html=True)
+        st.markdown("---")
         
         # Basic info
         st.markdown("#### 📋 Ticket Information")
@@ -704,7 +683,7 @@ def render_ticket_details():
     
     with col2:
         # Actions panel
-        st.markdown('<div class="form-container">', unsafe_allow_html=True)
+        st.markdown("---")
         st.markdown("#### ⚡ Quick Actions")
         
         # Status update
@@ -908,7 +887,7 @@ def render_knowledge_base():
     
     with tab1:
         st.markdown("#### Add New Documentation")
-        st.markdown('<div class="form-container">', unsafe_allow_html=True)
+        st.markdown("---")
         
         with st.form("add_documentation"):
             title = st.text_input("Documentation Title")
@@ -944,7 +923,7 @@ def render_knowledge_base():
     
     with tab2:
         st.markdown("#### Add Service Memory")
-        st.markdown('<div class="form-container">', unsafe_allow_html=True)
+        st.markdown("---")
         
         with st.form("add_service_memory"):
             query = st.text_input("Customer Query")
@@ -964,7 +943,7 @@ def render_knowledge_base():
     
     with tab3:
         st.markdown("#### 🔍 Search Knowledge Base")
-        st.markdown('<div class="form-container">', unsafe_allow_html=True)
+        st.markdown("---")
         
         search_query = st.text_input("Search Query", placeholder="Enter keywords to search...")
         search_category = st.selectbox("Filter by Category", ["All", "billing", "technical", "internet", "account", "general"])
